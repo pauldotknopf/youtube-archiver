@@ -1,0 +1,11 @@
+<Project>
+    <Import Project="version.props" />
+    <PropertyGroup>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Authors>pauldotknopf</Authors>
+        <PackageDescription>A tool archiving YouTube channels.</PackageDescription>
+        <Summary>A tool archiving YouTube channels.</Summary>
+        <RepositoryUrl>https://github.com/pauldotknopf/youtube-archiver</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/pauldotknopf/youtube-archiver</PackageProjectUrl>
+    </PropertyGroup>
+</Project>
