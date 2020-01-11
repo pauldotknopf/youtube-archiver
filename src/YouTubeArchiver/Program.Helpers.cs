@@ -4,12 +4,13 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
+using Common;
+using Common.Models;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Newtonsoft.Json;
 using Serilog;
-using YouTubeArchiver.Models;
 
 namespace YouTubeArchiver
 {
@@ -28,20 +29,20 @@ namespace YouTubeArchiver
                 }
 
                 IndexDirectory = Path.GetFullPath(IndexDirectory);
-                Log.Logger.Information("Output dump to {directory}...", IndexDirectory);
+                Log.Logger.Information("Index directory: {directory}...", IndexDirectory);
             }
 
-            public ChannelIndex GetIndex()
+            public IndexWorkspace GetWorkspace()
             {
-                var indexPath = Path.Combine(IndexDirectory, "index.json");
-
-                if (!File.Exists(indexPath))
+                var index = IndexWorkspace.Create(IndexDirectory);
+                
+                if (index == null)
                 {
                     Log.Logger.Error("The index.json file doesn't exist. Run \"index\" first.");
                     Environment.Exit(1);
                 }
 
-                return JsonConvert.DeserializeObject<ChannelIndex>(File.ReadAllText(indexPath));
+                return index;
             }
         }
         

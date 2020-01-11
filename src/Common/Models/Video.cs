@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace YouTubeArchiver.Models
+namespace Common.Models
 {
     public class Video
     {

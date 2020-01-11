@@ -4,13 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommandLine;
+using Common.Models;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using Newtonsoft.Json;
 using Serilog;
-using YouTubeArchiver.Models;
-using Channel = YouTubeArchiver.Models.Channel;
-using Video = YouTubeArchiver.Models.Video;
 
 namespace YouTubeArchiver
 {
@@ -54,7 +52,7 @@ namespace YouTubeArchiver
             return 0;
         }
         
-        private static async Task<Channel> GetChannel(string channelId, YouTubeService youTubeService)
+        private static async Task<Common.Models.Channel> GetChannel(string channelId, YouTubeService youTubeService)
         {
             var channelRequest = youTubeService.Channels.List("contentDetails,topicDetails,snippet");
             channelRequest.Id = channelId;
@@ -69,7 +67,7 @@ namespace YouTubeArchiver
 
             var channel = channelResponse.Items.Single();
 
-            return new Channel
+            return new Common.Models.Channel
             {
                 Id = channel.Id,
                 Title = channel.Snippet.Title,
@@ -77,7 +75,7 @@ namespace YouTubeArchiver
             };
         }
 
-        private static async Task<List<Video>> GetVideos(Channel channel, YouTubeService youTubeService)
+        private static async Task<List<Common.Models.Video>> GetVideos(Common.Models.Channel channel, YouTubeService youTubeService)
         {
             var videosRequest = youTubeService.PlaylistItems.List("snippet,contentDetails");
             videosRequest.PlaylistId = channel.UploadPlaylistId;
@@ -101,7 +99,7 @@ namespace YouTubeArchiver
                 }
             }
 
-            return videos.Select(x => new Video
+            return videos.Select(x => new Common.Models.Video
             {
                 Id = x.ContentDetails.VideoId,
                 Title = x.Snippet.Title,

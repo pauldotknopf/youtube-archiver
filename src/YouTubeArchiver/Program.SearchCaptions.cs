@@ -2,25 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
-using Lucene.Net.Analysis;
+using Common.Models;
 using Lucene.Net.Analysis.Standard;
-using Lucene.Net.Codecs.Lucene41;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
-using Lucene.Net.Index.Extensions;
-using Lucene.Net.Index.Memory;
-using Lucene.Net.QueryParsers.Classic;
-using Lucene.Net.Search;
 using Lucene.Net.Search.Highlight;
 using Lucene.Net.Search.Spans;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
 using Newtonsoft.Json;
 using Serilog;
-using YouTubeArchiver.Models;
 using Directory = Lucene.Net.Store.Directory;
 
 namespace YouTubeArchiver
@@ -44,21 +37,30 @@ namespace YouTubeArchiver
             
             options.Init();
 
-            var index = options.GetIndex();
+            var workspace = options.GetWorkspace();
 
-            Log.Logger.Information("Indexing the captions...");
+            Log.Logger.Information("Discovering captions...");
+            workspace.DiscoverCaptions();
 
-            var results = new List<CaptionSearchResultModel>();
-            
-            foreach (var video in index.Videos)
+            if (workspace.CaptionsFiles.Count == 0)
             {
-                var captionPath = Path.Combine(options.IndexDirectory, "captions", $"{video.Id}.json");
-                if (!File.Exists(captionPath))
-                {
-                    continue;
-                }
+                Log.Logger.Information("No captions are present.");
+                return 0;
+            }
+            
+            Log.Logger.Information("Searching captions for {count} videos...", workspace.CaptionsFiles.Count);
+            
+            var topic = new TopicSearch();
+            topic.Topic = options.Query;
 
-                var captions = JsonConvert.DeserializeObject<List<Caption>>(File.ReadAllText(captionPath));
+            var index = 0;
+            foreach (var caption in workspace.CaptionsFiles)
+            {
+                index++;
+                Log.Logger.Information("Searching video {current} of {total}...", index, workspace.CaptionsFiles.Count);
+                
+                var video = workspace.Index.Videos.Single(x => x.Id == caption.Key);
+                var captions = JsonConvert.DeserializeObject<List<Caption>>(File.ReadAllText(caption.Value));
                 
                 var captionText = string.Join(" ", captions.Select(x => $"[@{x.Start}] {x.Value}"));
 
@@ -83,12 +85,12 @@ namespace YouTubeArchiver
                     continue;
                 }
 
-                var model = new CaptionSearchResultModel();
+                var model = new TopicSearch.VideoResult();
                 model.Id = video.Id;
                 model.Title = video.Title;
                 model.Url = $"https://www.youtube.com/watch?v={video.Id}";
                 model.UploadedOn = video.UploadedOn?.ToString("d");
-                model.Segments = new List<CaptionSearchResultModel.SegmentModel>();
+                model.Segments = new List<TopicSearch.VideoResult.Segment>();
                 
                 foreach (Match match in Regex.Matches(searchResult, @"\[\@([0-9\.]*)\].+?(?=\[\@[0-9\.]*\]|$)"))
                 {
@@ -102,19 +104,22 @@ namespace YouTubeArchiver
                     segment = Regex.Replace(segment, @"\[\@[0-9\.]*\]", "");
                     segment = segment.Trim();
 
-                    var timeStamp = decimal.Parse(match.Groups[1].Value);
+                    var timeStamp = (int)Math.Max(Math.Floor(decimal.Parse(match.Groups[1].Value)), 0);
                     
-                    model.Segments.Add(new CaptionSearchResultModel.SegmentModel
+                    model.Segments.Add(new TopicSearch.VideoResult.Segment
                     {
                         Text = segment,
-                        DirectUrl = $"https://www.youtube.com/watch?v={video.Id}&t={Math.Max(Math.Floor(timeStamp), 0)}s"
+                        Location = timeStamp,
+                        DirectUrl = $"https://www.youtube.com/watch?v={video.Id}&t={timeStamp}s"
                     });
                 }
                 
-                results.Add(model);
+                topic.Results.Add(model);
             }
             
-            Console.WriteLine(JsonConvert.SerializeObject(results, Formatting.Indented));
+            Log.Logger.Information("Found {total} videos, with {total} segments.", topic.Results.Count, topic.Results.Sum(x => x.Segments.Count));
+            
+            Console.WriteLine(JsonConvert.SerializeObject(topic, Formatting.Indented));
             
             return 0;
         }
@@ -154,58 +159,6 @@ namespace YouTubeArchiver
                     return originalText;
 
                 return $"!!!! *{originalText}*";
-            }
-        }
-
-        private static Directory IndexCaptions(List<Tuple<Video, List<Caption>>> captions)
-        {
-            var directory = new RAMDirectory();
-            
-            var iwc = new IndexWriterConfig(LuceneVersion.LUCENE_48, new StandardAnalyzer(LuceneVersion.LUCENE_48));
-            using (var writer = new IndexWriter(directory, iwc))
-            {
-                foreach (var pair in captions)
-                {
-                    var document = new Document();
-                    document.Add(new StringField("videoId", pair.Item1.Id, Field.Store.YES));
-                    var text = string.Join(" ", pair.Item2.Select(x => $"[@{x.Duration}] {x.Value}"));
-                    document.Add(new TextField("text", text, Field.Store.YES));
-                    writer.AddDocument(document);
-                }
-            }
-
-            return directory;
-        }
-
-        private static List<string> QueryCaptions(Directory directory, string keywords)
-        {
-            return null;
-            using (var reader = DirectoryReader.Open(directory))
-            {
-                // var indexSearcher = new IndexSearcher(reader);
-                //
-                // var analyzer = new StandardAnalyzer(LuceneVersion.LUCENE_48);
-                // var queryParser = new QueryParser(LuceneVersion.LUCENE_48, "text", analyzer);
-                // var query = queryParser.Parse(keywords);
-                //
-                // var results = indexSearcher.Search(query, null, int.MaxValue);
-                //
-                // var docs = results.ScoreDocs.Select(x => reader.Document(x.Doc)).ToList();
-
-                //return docs.Select(x => x.Get("videoId")).ToList();
-                
-                // var indexSearcher = new IndexSearcher(reader);
-                // var terms = new List<SpanQuery>();
-                // foreach (var term in options.Query.Trim().Split(" "))
-                // {
-                //     terms.Add(new SpanTermQuery(new Term("content", term)));
-                // }
-                // var spanNearQuery = new SpanNearQuery(terms.ToArray(), 10, true);
-                //
-                // spanNearQuery.GetSpans(indexSearcher.IndexReader, new FixedBitSet(0),
-                //     new Dictionary<Term, TermContext>());
-
-
             }
         }
     }

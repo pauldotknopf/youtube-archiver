@@ -4,9 +4,9 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using CommandLine;
+using Common.Models;
 using Newtonsoft.Json;
 using Serilog;
-using YouTubeArchiver.Models;
 
 namespace YouTubeArchiver
 {
@@ -22,7 +22,7 @@ namespace YouTubeArchiver
         {
             options.Init();
 
-            var index = options.GetIndex();
+            var workspace = options.GetWorkspace();
 
             var videosDirectory = Path.Combine(options.IndexDirectory, "videos");
             if (!Directory.Exists(videosDirectory))
@@ -30,7 +30,7 @@ namespace YouTubeArchiver
                 Directory.CreateDirectory(videosDirectory);
             }
             
-            foreach (var video in index.Videos)
+            foreach (var video in workspace.Index.Videos)
             {
                 Log.Logger.Information("Downloading video for {videoId}...", video.Id);
 
