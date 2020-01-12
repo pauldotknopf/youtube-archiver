@@ -1,4 +1,6 @@
-﻿using CommandLine;
+﻿using System;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using Serilog;
 using Serilog.Events;
 
@@ -12,18 +14,26 @@ namespace YouTubeArchiver
                 .WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose)
                 .CreateLogger();
             
-            return Parser.Default.ParseArguments<IndexOptions,
-                    AuthOptions,
-                    GetCaptionsOptions,
-                    SearchCaptionsOptions,
-                    GetVideosOptions>(args)
-                .MapResult(
-                    (IndexOptions opts) => Index(opts).GetAwaiter().GetResult(),
-                    (AuthOptions opts) => Auth(opts),
-                    (GetCaptionsOptions opts) => GetCaptions(opts),
-                    (SearchCaptionsOptions opts) => SearchCaptions(opts),
-                    (GetVideosOptions opts) => GetVideos(opts),
-                    errs => 1);
+            var rootCommand = new RootCommand
+            {
+               AuthCommand.Create(),
+               CaptionsCommand.Create(),
+               IndexCommand.Create(),
+               SearchCommand.Create(),
+               VideosCommand.Create()
+            };
+
+            rootCommand.Description = "YouTube Archiver";
+
+            try
+            {
+                return rootCommand.InvokeAsync(args).Result;
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Error(ex, ex.Message);
+                return 1;
+            }
         }
     }
 }

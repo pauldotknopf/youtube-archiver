@@ -33,6 +33,8 @@ namespace Common
         
         public Dictionary<string, string> CaptionsFiles { get; } = new Dictionary<string, string>();
 
+        public Dictionary<string, string> VideoFiles { get; } = new Dictionary<string, string>();
+        
         public void DiscoverCaptions()
         {
             var captionsDirectory = Path.Combine(_directory, "captions");
@@ -66,6 +68,41 @@ namespace Common
             }
 
             action(Path.Combine(captionDirectory, $"{video.Id}.json"));
+        }
+
+        public void DiscoverLocalVideos()
+        {
+            var videosDirectory = Path.Combine(_directory, "videos");
+
+            VideoFiles.Clear();
+            
+            if (!Directory.Exists(videosDirectory))
+            {
+                return;
+            }
+
+            foreach (var videoFile in Directory.GetFiles(videosDirectory, "*.mp4"))
+            {
+                var videoId = Path.GetFileNameWithoutExtension(videoFile);
+                if (Index.Videos.All(x => x.Id != videoId))
+                {
+                    Log.Logger.Warning($"The video file videos/{Path.GetFileName(videoFile)} isn't referencing an indexed video.");
+                    continue;
+                }
+
+                VideoFiles[videoId] = videoFile;
+            }
+        }
+        
+        public void DownloadVideo(Video video, Action<string> action)
+        {
+            var captionDirectory = Path.Combine(_directory, "videos");
+            if (!Directory.Exists(captionDirectory))
+            {
+                Directory.CreateDirectory(captionDirectory);
+            }
+
+            action(Path.Combine(captionDirectory, $"{video.Id}.mp4"));
         }
     }
 }

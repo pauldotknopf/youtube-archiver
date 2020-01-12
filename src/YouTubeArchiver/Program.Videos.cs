@@ -1,95 +1,92 @@
 using System;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Web;
-using CommandLine;
-using Common.Models;
-using Newtonsoft.Json;
 using Serilog;
 
 namespace YouTubeArchiver
 {
     partial class Program
     {
-        [Verb("get-videos")]
-        class GetVideosOptions : BaseIndexOptions
+        class VideosCommand
         {
-            
-        }
-
-        private static int GetVideos(GetVideosOptions options)
-        {
-            options.Init();
-
-            var workspace = options.GetWorkspace();
-
-            var videosDirectory = Path.Combine(options.IndexDirectory, "videos");
-            if (!Directory.Exists(videosDirectory))
+            public static Command Create()
             {
-                Directory.CreateDirectory(videosDirectory);
-            }
-            
-            foreach (var video in workspace.Index.Videos)
-            {
-                Log.Logger.Information("Downloading video for {videoId}...", video.Id);
-
-                try
+                var command = new Command("download-videos")
                 {
-                    var videoFile = Path.Combine(videosDirectory, $"{video.Id}.mp4");
+                    Helpers.BuildIndexOption()
+                };
 
-                    if (File.Exists(videoFile))
+                command.Handler = CommandHandler.Create(typeof(VideosCommand).GetMethod(nameof(Run)));
+                
+                return command;
+            }
+
+            public static void Run(string indexDirectory)
+            {
+                var workspace = Helpers.GetWorkspace(indexDirectory);
+                
+                Log.Logger.Information("Discovering already downloaded videos...");
+                workspace.DiscoverLocalVideos();
+
+                var videos = workspace.Index.Videos.Where(x => !workspace.VideoFiles.ContainsKey(x.Id)).ToList();
+                
+                Log.Logger.Information("Downloading {total} videos...", videos.Count);
+
+                int index = 0;
+                foreach (var video in videos)
+                {
+                    index++;
+                    Log.Logger.Information("Downloading video for {videoId} ({current} of {total})...", video.Id, index, videos.Count);
+
+                    workspace.DownloadVideo(video, path =>
                     {
-                        Log.Logger.Information("Already downloaded, skipping...");
-                        continue;
-                    }
-                    
-                    var getVideoResponse =
-                        GetRequestBody($"https://www.youtube.com/get_video_info?html5=1&video_id={video.Id}");
-
-                    var keys = getVideoResponse.Split("&").Select(x =>
-                    {
-                        var split = x.Split("=");
-                        return new Tuple<string, string>(split[0], HttpUtility.UrlDecode(split[1]));
-                    }).ToDictionary(x => x.Item1, x => x.Item2);
-
-                    var playerResponse = JsonConvert.DeserializeObject<GetVideoPlayerObject>(keys["player_response"]);
-
-                    var stream = playerResponse.StreamingData.Formats.FirstOrDefault(x =>
-                        x.Quality == "medium" && x.MimeType.Contains("video/mp4"));
-
-                    if (stream == null)
-                    {
-                        stream = playerResponse.StreamingData.Formats.FirstOrDefault(x =>
-                            x.MimeType.Contains("video/mp4"));
-                    }
-
-                    if (stream == null)
-                    {
-                        Log.Logger.Error("Couldn't find stream for {videoId}...", video.Id);
-                        continue;
-                    }
-
-                    using (var client = new WebClient())
-                    {
-                        var tmpFile = $"{Path.GetDirectoryName(videoFile)}/tmp.mp4";
-                        if (File.Exists(tmpFile))
+                        try
                         {
-                            File.Delete(tmpFile);
+                            if (File.Exists(path))
+                            {
+                                File.Delete(path);
+                            }
+                            
+                            var player = Helpers.GetVideoPlayerInfoForYouTubeVideo(video.Id);
+
+                            var stream = player.StreamingData.Formats.FirstOrDefault(x =>
+                                x.Quality == "medium" && x.MimeType.Contains("video/mp4"));
+
+                            if (stream == null)
+                            {
+                                stream = player.StreamingData.Formats.FirstOrDefault(x =>
+                                    x.MimeType.Contains("video/mp4"));
+                            }
+
+                            if (stream == null)
+                            {
+                                Log.Logger.Error("Couldn't find stream for {videoId}...", video.Id);
+                                return;
+                            }
+
+                            using (var client = new WebClient())
+                            {
+                                var tmpFile = $"{Path.GetDirectoryName(path)}/tmp.mp4";
+                                if (File.Exists(tmpFile))
+                                {
+                                    File.Delete(tmpFile);
+                                }
+                                client.DownloadFile(stream.Url, tmpFile);
+                                File.Move(tmpFile, path);
+                            }
+                            
+                            Log.Logger.Information("Downloaded!");
                         }
-                        client.DownloadFile(stream.Url, tmpFile);
-                        File.Move(tmpFile, videoFile);
-                    }
-                    
-                    Log.Logger.Information("Downloaded!");
-                }
-                catch (Exception ex)
-                {
-                    Log.Logger.Error(ex, "Couldn't get video for {videoId}. " + ex.Message, video.Id);
+                        catch (Exception ex)
+                        {
+                            Log.Logger.Error(ex, "Couldn't get video for {videoId}. " + ex.Message, video.Id);
+                        }
+                    });
                 }
             }
-
-            return 0;
         }
     }
 }

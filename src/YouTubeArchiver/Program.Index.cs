@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using CommandLine;
 using Common.Models;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using Newtonsoft.Json;
@@ -14,98 +18,145 @@ namespace YouTubeArchiver
 {
     partial class Program
     {
-        [Verb("index")]
-        class IndexOptions : BaseIndexOptions
+        class IndexCommand
         {
-            [Value(0, MetaName = "channel-id", Required = true)]
-            public string ChannelId { get; set; }
-        }
-
-        private static async Task<int> Index(IndexOptions options)
-        {
-            options.Init();
-
-            var youtubeService = await GetYouTubeService();
-
-            Log.Logger.Information("Getting channel info for {channelId}...", options.ChannelId);
-            var channel = await GetChannel(options.ChannelId, youtubeService);
-
-            Log.Logger.Information("Getting uploaded videos for channel {channel}...", channel.Title);
-            var videos = await GetVideos(channel, youtubeService);
-
-            Log.Logger.Information("Saving index.json...");
-            var destinationFile = Path.Combine(options.IndexDirectory, "index.json");
-
-            if (File.Exists(destinationFile))
+            public static Command Create()
             {
-                File.Delete(destinationFile);
-            }
-            
-            File.WriteAllText(destinationFile, JsonConvert.SerializeObject(new ChannelIndex
-            {
-                Channel = channel,
-                Videos = videos
-            }, Formatting.Indented));
-            
-            Log.Logger.Information("Indexed!");
-            
-            return 0;
-        }
-        
-        private static async Task<Common.Models.Channel> GetChannel(string channelId, YouTubeService youTubeService)
-        {
-            var channelRequest = youTubeService.Channels.List("contentDetails,topicDetails,snippet");
-            channelRequest.Id = channelId;
-
-            var channelResponse = (await channelRequest.ExecuteAsync());
-
-            if (channelResponse.Items == null || channelResponse.Items.Count != 1)
-            {
-                Log.Logger.Error("Couldn't get channel by the given id.");
-                Environment.Exit(1);
-            }
-
-            var channel = channelResponse.Items.Single();
-
-            return new Common.Models.Channel
-            {
-                Id = channel.Id,
-                Title = channel.Snippet.Title,
-                UploadPlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads
-            };
-        }
-
-        private static async Task<List<Common.Models.Video>> GetVideos(Common.Models.Channel channel, YouTubeService youTubeService)
-        {
-            var videosRequest = youTubeService.PlaylistItems.List("snippet,contentDetails");
-            videosRequest.PlaylistId = channel.UploadPlaylistId;
-            videosRequest.MaxResults = 50;
-
-            var videos = new List<PlaylistItem>();
-            var videosResponse = await videosRequest.ExecuteAsync();
-
-            while (videosResponse.Items.Count > 0)
-            {
-                videos.AddRange(videosResponse.Items);
-
-                if (!string.IsNullOrEmpty(videosResponse.NextPageToken))
+                var command = new Command("index")
                 {
-                    videosRequest.PageToken = videosResponse.NextPageToken;
-                    videosResponse = await videosRequest.ExecuteAsync();
-                }
-                else
-                {
-                    videosResponse.Items.Clear();
-                }
+                    Helpers.BuildIndexOption(),
+                    new Argument("channelId")
+                    {
+                        ArgumentType = typeof(string)
+                    }
+                };
+
+                command.Handler = CommandHandler.Create(typeof(IndexCommand).GetMethod(nameof(Run)));
+
+                return command;
             }
 
-            return videos.Select(x => new Common.Models.Video
+            public static async Task Run(string indexDirectory, string channelId)
             {
-                Id = x.ContentDetails.VideoId,
-                Title = x.Snippet.Title,
-                UploadedOn = x.Snippet.PublishedAt.HasValue ? new DateTimeOffset(x.Snippet.PublishedAt.Value) : (DateTimeOffset?)null
-            }).ToList();
+                indexDirectory = Helpers.GetIndexDirectory(indexDirectory);
+                
+                var youtubeService = await GetYouTubeService();
+
+                Log.Logger.Information("Getting channel info for {channelId}...", channelId);
+                var channel = await GetChannel(channelId, youtubeService);
+
+                Log.Logger.Information("Getting uploaded videos for channel {channel}...", channel.Title);
+                var videos = await GetVideos(channel, youtubeService);
+
+                Log.Logger.Information("Saving index.json...");
+                var destinationFile = Path.Combine(indexDirectory, "index.json");
+
+                if (File.Exists(destinationFile))
+                {
+                    File.Delete(destinationFile);
+                }
+                
+                File.WriteAllText(destinationFile, JsonConvert.SerializeObject(new ChannelIndex
+                {
+                    Channel = channel,
+                    Videos = videos
+                }, Formatting.Indented));
+                
+                Log.Logger.Information("Indexed!");
+            }
+            
+            private static async Task<Common.Models.Channel> GetChannel(string channelId, YouTubeService youTubeService)
+            {
+                var channelRequest = youTubeService.Channels.List("contentDetails,topicDetails,snippet");
+                channelRequest.Id = channelId;
+
+                var channelResponse = (await channelRequest.ExecuteAsync());
+
+                if (channelResponse.Items == null || channelResponse.Items.Count != 1)
+                {
+                    Log.Logger.Error("Couldn't get channel by the given id.");
+                    Environment.Exit(1);
+                }
+
+                var channel = channelResponse.Items.Single();
+
+                return new Common.Models.Channel
+                {
+                    Id = channel.Id,
+                    Title = channel.Snippet.Title,
+                    UploadPlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads
+                };
+            }
+
+            private static async Task<List<Common.Models.Video>> GetVideos(Common.Models.Channel channel, YouTubeService youTubeService)
+            {
+                var videosRequest = youTubeService.PlaylistItems.List("snippet,contentDetails");
+                videosRequest.PlaylistId = channel.UploadPlaylistId;
+                videosRequest.MaxResults = 50;
+
+                var videos = new List<PlaylistItem>();
+                var videosResponse = await videosRequest.ExecuteAsync();
+
+                while (videosResponse.Items.Count > 0)
+                {
+                    videos.AddRange(videosResponse.Items);
+
+                    if (!string.IsNullOrEmpty(videosResponse.NextPageToken))
+                    {
+                        videosRequest.PageToken = videosResponse.NextPageToken;
+                        videosResponse = await videosRequest.ExecuteAsync();
+                    }
+                    else
+                    {
+                        videosResponse.Items.Clear();
+                    }
+                }
+
+                return videos.Select(x => new Common.Models.Video
+                {
+                    Id = x.ContentDetails.VideoId,
+                    Title = x.Snippet.Title,
+                    UploadedOn = x.Snippet.PublishedAt.HasValue ? new DateTimeOffset(x.Snippet.PublishedAt.Value) : (DateTimeOffset?)null
+                }).ToList();
+            }
+            
+            private static ClientSecrets GetSecrets()
+            {
+                var youtubeDumpAuthFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".youtube-dump-auth.json");
+                if (!File.Exists(youtubeDumpAuthFile))
+                {
+                    Log.Logger.Error("You must run \"auth\" first.");
+                    Environment.Exit(1);
+                }
+
+                var secrets = JsonConvert.DeserializeObject<ClientSecrets>(File.ReadAllText(youtubeDumpAuthFile));
+
+                if (string.IsNullOrEmpty(secrets.ClientId) || string.IsNullOrEmpty(secrets.ClientSecret))
+                {
+                    Log.Logger.Error("Invalid client id/secret.");
+                    Environment.Exit(1);
+                }
+            
+                return secrets;
+            }
+
+            private static async Task<YouTubeService> GetYouTubeService()
+            {
+                var secrets = GetSecrets();
+            
+                var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    secrets,
+                    new[] { YouTubeService.Scope.YoutubeForceSsl },
+                    "user",
+                    CancellationToken.None
+                );
+            
+                return new YouTubeService(new BaseClientService.Initializer
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "youtube-dump"
+                });
+            }
         }
-           
     }
 }
