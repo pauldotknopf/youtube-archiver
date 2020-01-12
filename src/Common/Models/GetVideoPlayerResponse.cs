@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
-namespace YouTubeArchiver.Models
+namespace Common.Models
 {
     public class GetVideoPlayerObject
     {
@@ -53,7 +52,7 @@ namespace YouTubeArchiver.Models
 
         public class PlayerCaptionsTracklistRendererDataCaptionTrack
         {
-            [JsonPropertyName("baseUrl")]
+            [JsonProperty("baseUrl")]
             public string BaseUrl { get; set; }
         }
     }

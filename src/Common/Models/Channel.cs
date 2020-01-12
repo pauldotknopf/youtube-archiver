@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace YouTubeArchiver.Models
+namespace Common.Models
 {
     public class Channel
     {

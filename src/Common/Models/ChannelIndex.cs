@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace YouTubeArchiver.Models
+namespace Common.Models
 {
     public class ChannelIndex
     {
