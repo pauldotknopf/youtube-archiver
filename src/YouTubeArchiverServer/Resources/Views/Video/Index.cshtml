@@ -1,0 +1,31 @@
+@model VideoModel
+
+<div class="container">
+    <div class="post">
+        <h1 class="title">@Model.Video.Title</h1>
+        <p class="submitted">
+            uploaded on @(Model.Video.UploadedOn.HasValue ? @Model.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
+        </p>
+        <div class="embed-responsive embed-responsive-16by9">
+            <div id="player"></div>
+        </div>
+    </div>
+    
+</div>
+
+@section scripts {
+    <script type="text/javascript">
+        var player = YouTubeArchiverServer.youTubePlayer("player");
+        player.on("stateChange", function(e) {
+            console.log("State changed! " + e.data);
+            if(e.data === 1) {
+                // TODO: Optionally seek to a spot in the video.
+                // player.seekTo(300, true).then(function() {
+                //     console.log("seeked!")
+                // })
+            }
+        });
+        player.loadVideoById("@Model.Video.Id");
+        player.playVideo();
+    </script>
+}

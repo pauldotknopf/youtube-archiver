@@ -20,6 +20,7 @@ namespace YouTubeArchiver
                CaptionsCommand.Create(),
                IndexCommand.Create(),
                SearchCommand.Create(),
+               VideoCommand.Create(),
                VideosCommand.Create()
             };
 
