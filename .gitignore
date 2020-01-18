@@ -361,3 +361,4 @@ apt/
 .apt/
 work/.debs/
 work/rootfs/
+src/YouTubeArchiverServer/Resources/wwwroot/dist/*

@@ -35,6 +35,8 @@ namespace Common
 
         public Dictionary<string, string> VideoFiles { get; } = new Dictionary<string, string>();
         
+        public Dictionary<string, TopicSearch> Topics = new Dictionary<string, TopicSearch>();
+        
         public void DiscoverCaptions()
         {
             var captionsDirectory = Path.Combine(_directory, "captions");
@@ -103,6 +105,51 @@ namespace Common
             }
 
             action(Path.Combine(captionDirectory, $"{video.Id}.mp4"));
+        }
+
+        public void DiscoverTopics()
+        {
+            var topicsDirectory = Path.Combine(_directory, "topics");
+
+            Topics.Clear();
+            
+            if (!Directory.Exists(topicsDirectory))
+            {
+                return;
+            }
+
+            foreach (var topicFile in Directory.GetFiles(topicsDirectory, "*.json"))
+            {
+                var topicKey = SanitizeTopic(Path.GetFileNameWithoutExtension(topicFile).ToLower());
+                Topics.Add(topicKey, JsonConvert.DeserializeObject<TopicSearch>(File.ReadAllText(topicFile)));
+            }
+        }
+
+        public void SaveTopic(string topic, Action<string> action)
+        {
+            var topicsDirectory = Path.Combine(_directory, "topics");
+            if (!Directory.Exists(topicsDirectory))
+            {
+                Directory.CreateDirectory(topicsDirectory);
+            }
+
+            var topicKey = SanitizeTopic(topic);
+            action(Path.Combine(topicsDirectory, $"{topicKey}.json"));
+        }
+
+        private string SanitizeTopic(string topic)
+        {
+            if (string.IsNullOrEmpty(topic))
+            {
+                throw new ArgumentException(nameof(topic));
+            }
+            
+            foreach (var c in Path.GetInvalidFileNameChars())
+            {
+                topic = topic.Replace(c, '-');
+            }
+
+            return topic.Trim().Replace(' ', '-').ToLower();
         }
     }
 }

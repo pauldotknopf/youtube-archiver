@@ -44,10 +44,7 @@ namespace YouTubeArchiver
             var indexOption = new Option(new []{"-i", "--index-directory"}, "The directory where the index exists.")
             {
                 Name = "index-directory",
-                Argument = new Argument<string>
-                {
-                    Arity = ArgumentArity.ExactlyOne
-                }
+                Argument = new Argument<string>()
             };
             indexOption.Argument.SetDefaultValue(Directory.GetCurrentDirectory());
             return indexOption;
