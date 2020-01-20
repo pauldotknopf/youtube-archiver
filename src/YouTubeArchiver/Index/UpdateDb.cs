@@ -23,7 +23,6 @@ namespace YouTubeArchiver.Index
         {
             var command = new Command("update-db")
             {
-                Helpers.BuildIndexOption(),
                 new Option(new []{"--channel-id", "-c"})
                 {
                     Argument = new Argument<string>()

@@ -1,0 +1,21 @@
+.video {
+    .video-title {
+        a {
+            color: $body-color;
+            @include hover {
+                text-decoration: none;
+                color: $link-hover-color;
+            }
+        }
+        margin-bottom: map-get($spacers, 2);
+    }
+    .video-submitted {
+        color: $text-muted;
+        font-size: $font-size-base;
+        margin-bottom: map-get($spacers, 2);
+    }
+    .video-segments {
+        margin-bottom: map-get($spacers, 2);
+    }
+    margin-bottom: map-get($spacers, 3);
+}

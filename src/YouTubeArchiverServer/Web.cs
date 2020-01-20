@@ -1,25 +1,25 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Statik.Files;
 using Statik.Mvc;
 using Statik.Web;
-using YouTubeArchiverServer.Services;
+using YouTubeArchiverServer.Models;
 
 namespace YouTubeArchiverServer
 {
     public class Web
     {
         public static IWebBuilder GetBuilder(
-            Config config,
-            ChannelService channelService)
+            List<ChannelModel> channels)
         {
             var builder = Statik.Statik.GetWebBuilder();
             
             builder.RegisterServices(services =>
             {
-                services.AddSingleton(config);
-                services.AddSingleton(channelService);
+                services.AddSingleton(channels);
             });
             
             builder.RegisterMvcServices();
@@ -41,26 +41,57 @@ namespace YouTubeArchiverServer
             {
                 controller = "Channel",
                 action = "Index",
-                channelId = channelService.GetChannels()[0].Id
+                channelId = channels[0].Channel.Id
             });
             
-            RegisterVideos(builder, channelService);
+            RegisterVideos(builder, channels);
+            RegisterTopics(builder, channels);
 
             return builder;
         }
 
-        private static void RegisterVideos(IWebBuilder builder, ChannelService channelService)
+        private static void RegisterTopics(IWebBuilder builder, List<ChannelModel> channels)
         {
-            foreach (var channel in channelService.GetChannels())
+            bool hasTopic = false;
+            foreach (var topic in channels.SelectMany(x => x.Topics))
             {
-                foreach (var video in channelService.GetChannelVideos(channel.Id))
+                hasTopic = true;
+                builder.RegisterMvc($"/topic/{topic.Id}", new
                 {
-                    builder.RegisterMvc($"/video/{video.Id}", new
+                    controller = "Topic",
+                    action = "Index",
+                    topic
+                });
+            }
+
+            if (hasTopic)
+            {
+                builder.RegisterServices(services =>
+                    {
+                        services.Configure<Config>(config => { config.HasTopics = true; });
+                    });
+                builder.RegisterMvc("/topics", new
+                {
+                    controller = "Topic",
+                    action = "List",
+                    /*TODO: support multiple channels.*/
+                    channel = channels[0]
+                });
+            }
+        }
+
+        private static void RegisterVideos(IWebBuilder builder, List<ChannelModel> channels)
+        {
+            foreach (var channel in channels)
+            {
+                foreach (var video in channel.Videos)
+                {
+                    builder.RegisterMvc($"/video/{video.Video.Id}", new
                     {
                         controller = "Video",
                         action = "Index",
-                        videoId = video.Id,
-                        channelId = channel.Id
+                        videoId = video.Video.Id,
+                        channelId = channel.Channel.Id
                     });
                 }
             }

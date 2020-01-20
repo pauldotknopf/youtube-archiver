@@ -1,24 +1,22 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using YouTubeArchiverServer.Models;
-using YouTubeArchiverServer.Services;
 
 namespace YouTubeArchiverServer.Controllers
 {
     public class ChannelController : Controller
     {
-        private readonly ChannelService _channelService;
+        private readonly List<ChannelModel> _channels;
 
-        public ChannelController(ChannelService channelService)
+        public ChannelController(List<ChannelModel> channels)
         {
-            _channelService = channelService;
+            _channels = channels;
         }
         
         public ActionResult Index([FromRouteData]string channelId)
         {
-            var model = new ChannelModel();
-            model.Channel = _channelService.GetChannelById(channelId);
-            model.Videos = _channelService.GetChannelVideos(channelId);
-            return View("Index", model);
+            return View("Index", _channels.Single(x => x.Channel.Id == channelId));
         }
     }
 }

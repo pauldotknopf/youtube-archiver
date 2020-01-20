@@ -18,10 +18,7 @@ namespace YouTubeArchiver.Index
     {
         public static Command Create()
         {
-            var command = new Command("update-captions")
-            {
-                Helpers.BuildIndexOption()
-            };
+            var command = new Command("update-captions");
 
             command.Handler = CommandHandler.Create(typeof(UpdateCaptions).GetMethod(nameof(Run)));
 

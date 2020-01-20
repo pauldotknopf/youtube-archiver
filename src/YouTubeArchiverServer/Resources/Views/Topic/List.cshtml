@@ -1,0 +1,15 @@
+@model ChannelModel
+
+<div class="container">
+    @foreach (var topic in Model.Topics)
+    {
+        <div class="topic">
+            <h2 class="topic-title">
+                <a href="@Url.Content($"~/topic/{topic.Id}")">@topic.Topic</a>
+            </h2>
+             <p class="topic-results">
+                Found (@topic.Videos.Count) videos.
+            </p>
+        </div>
+    }
+</div>

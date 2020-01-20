@@ -1,13 +1,12 @@
-@using YouTubeArchiverServer.Services
+@using Microsoft.Extensions.Options
 @inject IPageRegistry PageRegistry;
-@inject Config Config;
-@inject ChannelService ChannelService;
+@inject List<ChannelModel> Channels;
+@inject IOptions<Config> Config;
 @{
   string siteTitle = "YouTube Archive";
-  if (Config.IsForSingleChannel)
+  if (Channels.Count == 1)
   {
-    var channel = ChannelService.GetChannelById(Config.SingleChannelId);
-    siteTitle = channel.Title;
+    siteTitle = Channels[0].Channel.Title;
   }
 
   var pageTitle = siteTitle;
@@ -31,19 +30,19 @@
   <link href="@Url.Content("~/dist/styles.css")" rel="stylesheet" type="text/css"/>
 </head>
 <body>
-<header class="bg-light mb-5">
+<header class="bg-light mb-4">
   <div class="navbar navbar-expand">
     <div class="container">
       <a href="@Url.Content("~/")" class="navbar-brand d-flex">
          <strong>@siteTitle</strong>
       </a>
       <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link" href="@Url.Content("~/archive")">videos</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="@Url.Content("~/about")">topics</a>
-        </li>
+        @if (Config.Value.HasTopics)
+        {
+          <li class="nav-item">
+            <a class="nav-link" href="@Url.Content("~/topics")">topics</a>
+          </li>
+        }
       </ul>
     </div>
   </div>

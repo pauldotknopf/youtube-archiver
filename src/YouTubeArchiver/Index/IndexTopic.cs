@@ -17,7 +17,6 @@ namespace YouTubeArchiver.Index
         {
             var command = new Command("index-topic")
             {
-                Helpers.BuildIndexOption(),
                 new Option(new[]{"-q", "--query"})
                 {
                     Required = true,

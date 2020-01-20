@@ -23,7 +23,6 @@ namespace YouTubeArchiver.Index
         {
             var command = new Command("search-captions")
             {
-                Helpers.BuildIndexOption(),
                 new Option(new[]{"-q", "--query"})
                 {
                     Name = "query",

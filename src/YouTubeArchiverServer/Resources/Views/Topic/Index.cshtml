@@ -1,0 +1,26 @@
+@model TopicModel
+
+<div class="container">
+    <div class="topic">
+        <h1 class="topic-title">@Model.Topic</h1>
+        @foreach (var video in Model.Videos)
+        {
+            <div class="video">
+                <h2 class="video-title">
+                    <a href="@Url.Content($"~/video/{video.Video.Video.Id}")">@video.Video.Video.Title</a>
+                </h2>
+                <p class="video-submitted">
+                    uploaded on @(video.Video.Video.UploadedOn.HasValue ? video.Video.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
+                </p>
+                <div class="video-segments">
+                    @foreach (var segment in video.Segments)
+                    {
+                        <div class="video-segment">
+                            <a href="~/video/@video.Video.Video.Id?t=@(segment.Location)">@@@segment.FriendlyLocation</a> @Html.Raw(segment.Text)
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

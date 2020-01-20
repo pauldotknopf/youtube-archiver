@@ -3,12 +3,12 @@
 <div class="container">
     @foreach (var video in Model.Videos)
     {
-        <div class="post">
-            <h2 class="title">
-                <a href="@Url.Content($"~/video/{video.Id}")">@video.Title</a>
+        <div class="video">
+            <h2 class="video-title">
+                <a href="@Url.Content($"~/video/{video.Video.Id}")">@video.Video.Title</a>
             </h2>
             <p class="submitted">
-                uploaded on @(video.UploadedOn.HasValue ? @video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
+                uploaded on @(video.Video.UploadedOn.HasValue ? @video.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
             </p>
         </div>
     }

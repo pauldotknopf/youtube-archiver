@@ -6,7 +6,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Common;
 using Serilog;
-using YouTubeArchiverServer.Services;
 
 namespace YouTubeArchiverServer
 { 
@@ -43,12 +42,13 @@ namespace YouTubeArchiverServer
             public static async Task Run(int port, string appBase)
             {
                 var channelIndex = IndexWorkspace.Create(Directory.GetCurrentDirectory());
-                var channelService = new ChannelService(new List<IndexWorkspace> {channelIndex});
                 
-                var config = new Config();
-                config.SingleChannelId = channelIndex.Index.Channel.Id;
-                
-                var builder = Web.GetBuilder(config, channelService);
+                var builder = Web.GetBuilder(
+                    ModelBuilder.BuildChannelModels(
+                        new List<IndexWorkspace>
+                        {
+                            channelIndex
+                        }));
                 
                 using (var host = builder.BuildWebHost(appBase, port))
                 {

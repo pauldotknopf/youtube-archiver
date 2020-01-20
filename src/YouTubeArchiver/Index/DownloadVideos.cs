@@ -13,11 +13,8 @@ namespace YouTubeArchiver.Index
     {
         public static Command Create()
         {
-            var command = new Command("download-videos")
-            {
-                Helpers.BuildIndexOption()
-            };
-
+            var command = new Command("download-videos");
+            
             command.Handler = CommandHandler.Create(typeof(DownloadVideos).GetMethod(nameof(Run)));
 
             return command;
