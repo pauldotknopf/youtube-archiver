@@ -13,6 +13,11 @@ namespace YouTubeArchiverServer.Controllers
         {
             _channels = channels;
         }
+
+        public ActionResult List()
+        {
+            return View("List", _channels);
+        }
         
         public ActionResult Index([FromRouteData]string channelId)
         {

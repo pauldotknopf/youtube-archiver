@@ -30,9 +30,8 @@ namespace YouTubeArchiver.Index
             var workspace = Helpers.GetWorkspace(indexDirectory);
             
             Log.Logger.Information("Discovering already downloaded captions...");
-            workspace.DiscoverCaptions();
-            
-            var videosWithoutCaptions = workspace.Index.Videos.Where(x => !workspace.CaptionsFiles.ContainsKey(x.Id))
+            var captions = workspace.GetCaptions();
+            var videosWithoutCaptions = workspace.GetVideos().Where(x => !captions.ContainsKey(x.Id))
                 .ToList();
             
             Log.Logger.Information("Downloading {total} captions...", videosWithoutCaptions.Count);
@@ -43,60 +42,51 @@ namespace YouTubeArchiver.Index
                 index++;
                 Log.Logger.Information("Downloading captions for {videoId} ({current} of {total})...", video.Id, index, videosWithoutCaptions.Count);
 
-                workspace.DownloadCaption(video, path =>
+                try
                 {
-                    if (File.Exists(path))
+
+                    var player = Helpers.GetVideoPlayerInfoForYouTubeVideo(video.Id);
+
+                    var caption = (player.Captions?.PlayerCaptionsTracklistRenderer?.CaptionTracks ?? new List<GetVideoPlayerObject.PlayerCaptionsTracklistRendererDataCaptionTrack>())
+                        .FirstOrDefault();
+
+                    if (caption == null)
                     {
-                        File.Delete(path);
+                        Log.Logger.Warning("No caption present.");
+                        continue;
                     }
+
+                    var captionXml = Helpers.GetRequestBody(caption.BaseUrl);
+
+                    var xmlDoc = new XmlDocument();
+                    xmlDoc.LoadXml(captionXml);
+
+                    var newCaptions = new List<Caption>();
+                    foreach (XmlElement item in xmlDoc.GetElementsByTagName("text"))
+                    {
+                        var innerText = item.InnerText;
+                        if (!string.IsNullOrEmpty(innerText))
+                        {
+                            innerText = HttpUtility.HtmlDecode(innerText);
+                        }
+
+                        innerText = Regex.Replace(innerText, @"<[^>]*>", "");
+                        
+                        newCaptions.Add(new Caption
+                        {
+                            Start = double.Parse(item.GetAttribute("start")),
+                            Duration = double.Parse(item.GetAttribute("dur")),
+                            Value = innerText
+                        });
+                    }
+                    workspace.SaveCaptions(video.Id, newCaptions);
                     
-                    try
-                    {
-
-                        var player = Helpers.GetVideoPlayerInfoForYouTubeVideo(video.Id);
-
-                        var caption = (player.Captions?.PlayerCaptionsTracklistRenderer?.CaptionTracks ?? new List<GetVideoPlayerObject.PlayerCaptionsTracklistRendererDataCaptionTrack>())
-                            .FirstOrDefault();
-
-                        if (caption == null)
-                        {
-                            Log.Logger.Warning("No caption present.");
-                            return;
-                        }
-
-                        var captionXml = Helpers.GetRequestBody(caption.BaseUrl);
-
-                        var xmlDoc = new XmlDocument();
-                        xmlDoc.LoadXml(captionXml);
-
-                        var captions = new List<Caption>();
-                        foreach (XmlElement item in xmlDoc.GetElementsByTagName("text"))
-                        {
-                            var innerText = item.InnerText;
-                            if (!string.IsNullOrEmpty(innerText))
-                            {
-                                innerText = HttpUtility.HtmlDecode(innerText);
-                            }
-
-                            innerText = Regex.Replace(innerText, @"<[^>]*>", "");
-                            
-                            captions.Add(new Caption
-                            {
-                                Start = double.Parse(item.GetAttribute("start")),
-                                Duration = double.Parse(item.GetAttribute("dur")),
-                                Value = innerText
-                            });
-                        }
-                        
-                        File.WriteAllText(path, JsonConvert.SerializeObject(captions, Newtonsoft.Json.Formatting.Indented));
-                        
-                        Log.Logger.Information("Saved!");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Error(ex, "Couldn't get timed text for {videoId}. " + ex.Message, video.Id);
-                    }
-                });
+                    Log.Logger.Information("Saved!");
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error(ex, "Couldn't get timed text for {videoId}. " + ex.Message, video.Id);
+                }
             }
 
             return Task.CompletedTask;

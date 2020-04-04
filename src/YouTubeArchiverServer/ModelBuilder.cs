@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Common;
 using YouTubeArchiverServer.Models;
@@ -8,7 +9,7 @@ namespace YouTubeArchiverServer
 {
     public class ModelBuilder
     {
-        public static List<ChannelModel> BuildChannelModels(List<IndexWorkspace> workspaces)
+        public static List<ChannelModel> BuildChannelModels(List<IIndexWorkspace> workspaces)
         {
             var channels = new List<ChannelModel>();
         
@@ -28,7 +29,7 @@ namespace YouTubeArchiverServer
 
                 // Load all the videos
                 
-                foreach (var video in workspace.Index.Videos)
+                foreach (var video in workspace.GetVideos())
                 {
                     channel.Videos.Add(new VideoModel
                     {
@@ -39,15 +40,12 @@ namespace YouTubeArchiverServer
                 
                 // Load all the topics
                 
-                 workspace.DiscoverTopics();
-
-                foreach (var topicEntry in workspace.Topics)
+                foreach (var topicEntry in workspace.GetTopics())
                 {
                     var topic = new TopicModel
                     {
                         Id = topicEntry.Key,
-                        Topic = topicEntry.Value.Topic,
-                        Channel = channel
+                        Topic = topicEntry.Value.Topic
                     };
                     
                     foreach (var result in topicEntry.Value.Results)

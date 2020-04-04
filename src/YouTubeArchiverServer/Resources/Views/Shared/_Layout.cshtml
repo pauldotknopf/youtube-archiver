@@ -37,6 +37,12 @@
          <strong>@siteTitle</strong>
       </a>
       <ul class="navbar-nav">
+        @if (Channels.Count > 1)
+        {
+          <li class="nav-item">
+            <a class="nav-link" href="@Url.Content("~/channels")">channels</a>
+          </li>
+        }
         @if (Config.Value.HasTopics)
         {
           <li class="nav-item">

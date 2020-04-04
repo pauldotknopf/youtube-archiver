@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Common
 {
-    public class IndexWorkspace
+    public class IndexWorkspace : IIndexWorkspace
     {
         private readonly string _directory;
 
@@ -31,37 +31,7 @@ namespace Common
         
         public ChannelIndex Index { get; }
         
-        public Dictionary<string, string> CaptionsFiles { get; } = new Dictionary<string, string>();
-
-        public Dictionary<string, string> VideoFiles { get; } = new Dictionary<string, string>();
-        
-        public Dictionary<string, TopicSearch> Topics = new Dictionary<string, TopicSearch>();
-        
-        public void DiscoverCaptions()
-        {
-            var captionsDirectory = Path.Combine(_directory, "captions");
-
-            CaptionsFiles.Clear();
-            
-            if (!Directory.Exists(captionsDirectory))
-            {
-                return;
-            }
-
-            foreach (var captionFile in Directory.GetFiles(captionsDirectory, "*.json"))
-            {
-                var videoId = Path.GetFileNameWithoutExtension(captionFile);
-                if (Index.Videos.All(x => x.Id != videoId))
-                {
-                    Log.Logger.Warning($"The caption file captions/{Path.GetFileName(captionFile)} isn't referencing an indexed video.");
-                    continue;
-                }
-
-                CaptionsFiles[videoId] = captionFile;
-            }
-        }
-
-        public void DownloadCaption(Video video, Action<string> action)
+        public void SaveCaptions(string videoId, List<Caption> captions)
         {
             var captionDirectory = Path.Combine(_directory, "captions");
             if (!Directory.Exists(captionDirectory))
@@ -69,31 +39,50 @@ namespace Common
                 Directory.CreateDirectory(captionDirectory);
             }
 
-            action(Path.Combine(captionDirectory, $"{video.Id}.json"));
-        }
+            var destination = Path.Combine(captionDirectory, $"{videoId}.json");
 
-        public void DiscoverLocalVideos()
+            if (File.Exists(destination))
+            {
+                File.Delete(destination);
+            }
+            
+            File.WriteAllText(destination, JsonConvert.SerializeObject(captions, Formatting.Indented));
+        }
+        
+        public List<Video> GetVideos()
         {
+            var result = new List<Video>();
             var videosDirectory = Path.Combine(_directory, "videos");
 
-            VideoFiles.Clear();
-            
             if (!Directory.Exists(videosDirectory))
             {
-                return;
+                return result;
             }
 
-            foreach (var videoFile in Directory.GetFiles(videosDirectory, "*.mp4"))
+            foreach (var file in Directory.GetFiles(videosDirectory, "*.json"))
             {
-                var videoId = Path.GetFileNameWithoutExtension(videoFile);
-                if (Index.Videos.All(x => x.Id != videoId))
-                {
-                    Log.Logger.Warning($"The video file videos/{Path.GetFileName(videoFile)} isn't referencing an indexed video.");
-                    continue;
-                }
-
-                VideoFiles[videoId] = videoFile;
+                result.Add(JsonConvert.DeserializeObject<Video>(File.ReadAllText(file)));
             }
+
+            return result;
+        }
+
+        public Dictionary<string, List<Caption>> GetCaptions()
+        {
+            var result = new Dictionary<string, List<Caption>>();
+            var captionsDirectory = Path.Combine(_directory, "captions");
+
+            if (!Directory.Exists(captionsDirectory))
+            {
+                return result;
+            }
+
+            foreach (var file in Directory.GetFiles(captionsDirectory, "*.json"))
+            {
+                result.Add(Path.GetFileNameWithoutExtension(file), JsonConvert.DeserializeObject<List<Caption>>(File.ReadAllText(file)));
+            }
+
+            return result;
         }
         
         public void DownloadVideo(Video video, Action<string> action)
@@ -107,25 +96,26 @@ namespace Common
             action(Path.Combine(captionDirectory, $"{video.Id}.mp4"));
         }
 
-        public void DiscoverTopics()
+        public Dictionary<string, TopicSearch> GetTopics()
         {
+            var result = new Dictionary<string, TopicSearch>();
             var topicsDirectory = Path.Combine(_directory, "topics");
 
-            Topics.Clear();
-            
             if (!Directory.Exists(topicsDirectory))
             {
-                return;
+                return result;
             }
 
             foreach (var topicFile in Directory.GetFiles(topicsDirectory, "*.json"))
             {
                 var topicKey = SanitizeTopic(Path.GetFileNameWithoutExtension(topicFile).ToLower());
-                Topics.Add(topicKey, JsonConvert.DeserializeObject<TopicSearch>(File.ReadAllText(topicFile)));
+                result.Add(topicKey, JsonConvert.DeserializeObject<TopicSearch>(File.ReadAllText(topicFile)));
             }
+
+            return result;
         }
 
-        public void SaveTopic(string topic, Action<string> action)
+        public void SaveTopic(TopicSearch topicSearch)
         {
             var topicsDirectory = Path.Combine(_directory, "topics");
             if (!Directory.Exists(topicsDirectory))
@@ -133,8 +123,13 @@ namespace Common
                 Directory.CreateDirectory(topicsDirectory);
             }
 
-            var topicKey = SanitizeTopic(topic);
-            action(Path.Combine(topicsDirectory, $"{topicKey}.json"));
+            var topicKey = SanitizeTopic(topicSearch.Topic);
+            var destination = Path.Combine(topicsDirectory, $"{topicKey}.json");
+            if (File.Exists(destination))
+            {
+                File.Delete(destination);
+            }
+            File.WriteAllText(destination, JsonConvert.SerializeObject(topicSearch, Formatting.Indented));
         }
 
         private string SanitizeTopic(string topic)

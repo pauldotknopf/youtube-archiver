@@ -13,8 +13,6 @@ namespace YouTubeArchiverServer.Models
         
         public string Topic { get; set; }
 
-        public ChannelModel Channel { get; set; }
-        
         public List<TopicVideoModel> Videos { get; set; }
     }
 }

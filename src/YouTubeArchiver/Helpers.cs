@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Net.Http;
 using System.Web;
 using Common;
 using Common.Models;
+using Google.Apis.Auth.OAuth2;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -13,6 +15,40 @@ namespace YouTubeArchiver
 {
     public static class Helpers
     {
+        public static Dictionary<string, string> GetScrapeHeaders()
+        {
+            var youtubeScrapeFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".youtube-archiver-scrapping.json");
+
+            if (!File.Exists(youtubeScrapeFile))
+            {
+                Log.Error("No auth found for scrapping, run \"youtube-archiver auth scrapping\".");
+                Environment.Exit(1);
+            }
+
+            return JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(youtubeScrapeFile));
+        }
+
+        public static ClientSecrets GetOAuthSecrets()
+        {
+            var youtubeAuthFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".youtube-archiver-auth.json");
+
+            if (!File.Exists(youtubeAuthFile))
+            {
+                Log.Error("No auth found for oauth, run \"youtube-archiver auth oauth\".");
+                Environment.Exit(1);
+            }
+
+            var secrets = JsonConvert.DeserializeObject<ClientSecrets>(File.ReadAllText(youtubeAuthFile));
+
+            if (string.IsNullOrEmpty(secrets.ClientId) || string.IsNullOrEmpty(secrets.ClientSecret))
+            {
+                Log.Logger.Error("Invalid client id/secret.");
+                Environment.Exit(1);
+            }
+
+            return secrets;
+        }
+        
         public static string GetIndexDirectory(string indexDirectory)
         {
             if (string.IsNullOrEmpty(indexDirectory))
@@ -39,31 +75,51 @@ namespace YouTubeArchiver
             return index;
         }
 
-        public static Option BuildIndexOption()
-        {
-            var indexOption = new Option(new []{"-i", "--index-directory"}, "The directory where the index exists.")
-            {
-                Name = "index-directory",
-                Argument = new Argument<string>()
-            };
-            indexOption.Argument.SetDefaultValue(Directory.GetCurrentDirectory());
-            return indexOption;
-        }
-        
         public static string GetRequestBody(string url)
         {
             using (var client = new HttpClient())
             {
+                foreach (var header in Helpers.GetScrapeHeaders())
+                {
+                    client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                }
+                
                 var response = client.GetAsync(url).GetAwaiter().GetResult();
                 response.EnsureSuccessStatusCode();
                 return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
         }
+        
+        public static bool ParseCurlCommand(string curlCommand, out Dictionary<string, string> headers)
+        {
+            if (string.IsNullOrEmpty(curlCommand))
+            {
+                headers = null;
+                return false;
+            }
+            
+            headers = new Dictionary<string, string>();
+            var currentIndex = curlCommand.IndexOf("-H", StringComparison.Ordinal);
+
+            while (currentIndex != -1)
+            {
+                var openingIndex = curlCommand.IndexOf("'", currentIndex, StringComparison.Ordinal);
+                var closingIndex = curlCommand.IndexOf("'", openingIndex + 1, StringComparison.Ordinal);
+
+                var header = curlCommand.Substring(openingIndex + 1, closingIndex - openingIndex - 1);
+                
+                headers.Add(header.Substring(0, header.IndexOf(":", StringComparison.Ordinal)).Trim(), header.Substring(header.IndexOf(":", StringComparison.Ordinal) + 1).Trim());
+
+                currentIndex = curlCommand.IndexOf("-H", closingIndex, StringComparison.Ordinal);
+            }
+
+            return true;
+        }
 
         public static GetVideoPlayerObject GetVideoPlayerInfoForYouTubeVideo(string videoId)
         {
             var getVideoResponse =
-                Helpers.GetRequestBody($"https://www.youtube.com/get_video_info?html5=1&video_id={videoId}");
+                GetRequestBody($"https://www.youtube.com/get_video_info?html5=1&video_id={videoId}");
 
             var keys = getVideoResponse.Split("&").Select(x =>
             {

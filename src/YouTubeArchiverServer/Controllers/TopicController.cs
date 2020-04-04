@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using YouTubeArchiverServer.Models;
 
@@ -7,14 +5,14 @@ namespace YouTubeArchiverServer.Controllers
 {
     public class TopicController : Controller
     {
-        public ActionResult Index([FromRouteData]TopicModel topic)
+        public ActionResult Index([FromRouteData]TopicModel data)
         {
-            return View("Index", topic);
+            return View("Index", data);
         }
         
-        public ActionResult List([FromRouteData]ChannelModel channel)
+        public ActionResult List([FromRouteData]TopicsModel data)
         {
-            return View("List", channel);
+            return View("List", data);
         }
     }
 }

@@ -1,9 +1,14 @@
+using System.Collections.Generic;
 using Common.Models;
 
 namespace YouTubeArchiverServer.Models
 {
     public class TopicsModel
     {
-        public Channel Channel { get; set; }
+        public TopicsModel()
+        {
+            Topics = new List<TopicModel>();
+        }
+        public List<TopicModel> Topics { get; }
     }
 }

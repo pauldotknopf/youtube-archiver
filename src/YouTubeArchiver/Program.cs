@@ -21,7 +21,8 @@ namespace YouTubeArchiver
                 DownloadVideo.Create()
             };
 
-            rootCommand.Description = "YouTube Archiver";
+            rootCommand.Name = "youtube-archiver";
+            rootCommand.Description = "Archive YouTube channels.";
 
             try
             {

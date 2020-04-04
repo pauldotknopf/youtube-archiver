@@ -21,6 +21,9 @@ namespace YouTubeArchiver.Index
                 {
                     Required = true,
                     Argument = new Argument<string>()
+                    {
+                        Arity = ArgumentArity.OneOrMore
+                    }
                 }
             };
 
@@ -29,40 +32,44 @@ namespace YouTubeArchiver.Index
             return command;
         }
 
-        public static void Run(string indexDirectory, string query)
+        public static void Run(string indexDirectory, List<string> query)
         {
             var workspace = Helpers.GetWorkspace(indexDirectory);
+
+            var queryFull = string.Join(" ", query);
+            if (string.IsNullOrEmpty(queryFull))
+            {
+                Log.Error("No query given.");
+                Environment.Exit(1);
+            }
+            
+            Log.Logger.Information("Indexing topic {topic}...", queryFull);
             
             Log.Logger.Information("Discovering captions...");
-            workspace.DiscoverCaptions();
+            var captionEntries = workspace.GetCaptions();
 
-            if (workspace.CaptionsFiles.Count == 0)
+            if (captionEntries.Count == 0)
             {
                 Log.Logger.Information("No captions are present.");
                 return;
             }
             
             Log.Logger.Information("Discovering current topics...");
-            workspace.DiscoverTopics();
+            var topics = workspace.GetTopics();
             
             var result = new TopicSearch();
-            result.Topic = query;
+            result.Topic = queryFull;
             result.Results = new List<TopicSearch.VideoResult>();
             
-            Log.Logger.Information("Searching captions for {count} videos...", workspace.CaptionsFiles.Count);
+            Log.Logger.Information("Searching captions for {count} videos...", captionEntries.Count);
 
             var index = 0;
-            foreach (var caption in workspace.CaptionsFiles)
+            foreach (var captions in captionEntries)
             {
                 index++;
-                Log.Logger.Information("Searching video {current} of {total}...", index, workspace.CaptionsFiles.Count);
+                Log.Logger.Information("Searching video {current} of {total}...", index, captionEntries.Count);
 
-                var videoId = caption.Key;
-                var captionFile = caption.Value;
-                
-                var captions = JsonConvert.DeserializeObject<List<Caption>>(File.ReadAllText(captionFile));
-
-                var segments = SearchEngine.Search(captions, query);
+                var segments = SearchEngine.Search(captions.Value, queryFull);
 
                 if (segments.Count == 0)
                 {
@@ -71,7 +78,7 @@ namespace YouTubeArchiver.Index
                 
                 result.Results.Add(new TopicSearch.VideoResult
                 {
-                    Id = videoId,
+                    Id = captions.Key,
                     Segments = segments.Select(x => new TopicSearch.VideoResult.Segment
                     {
                         Text = x.Text,
@@ -79,16 +86,8 @@ namespace YouTubeArchiver.Index
                     }).ToList()
                 });
             }
-            
-            workspace.SaveTopic(query, path =>
-            {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
-                
-                File.WriteAllText(path, JsonConvert.SerializeObject(result, Formatting.Indented));
-            });
+
+            workspace.SaveTopic(result);
         }
     }
 }

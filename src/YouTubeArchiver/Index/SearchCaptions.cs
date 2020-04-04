@@ -39,25 +39,25 @@ namespace YouTubeArchiver.Index
             return command;
         }
 
-        public static async Task Run(string indexDirectory, string query)
+        public static void Run(string indexDirectory, string query)
         {
             var workspace = Helpers.GetWorkspace(indexDirectory);
                 
             Log.Logger.Information("Querying for {query}...", query);
             
             Log.Logger.Information("Discovering captions...");
-            workspace.DiscoverCaptions();
+            var captionEntries = workspace.GetCaptions();
 
-            if (workspace.CaptionsFiles.Count == 0)
+            if (captionEntries.Count == 0)
             {
                 Log.Logger.Information("No captions are present.");
                 Environment.Exit(1);
             }
 
-            var videosWithCaptions = workspace.Index.Videos.Where(x => workspace.CaptionsFiles.ContainsKey(x.Id))
-                .ToList();
+            var videoCaptions = workspace.GetCaptions();
+            var videosWithCaptions = workspace.GetVideos().Where(x => videoCaptions.ContainsKey(x.Id)).ToList();
             
-            Log.Logger.Information("Searching captions for {count} videos...", videosWithCaptions.Count);
+            Log.Information("Searching captions for {count} videos...", videosWithCaptions.Count);
             
             var topic = new TopicSearch();
             topic.Topic = query;
@@ -66,11 +66,9 @@ namespace YouTubeArchiver.Index
             foreach (var video in videosWithCaptions)
             {
                 index++;
-                Log.Logger.Information("Searching video {current} of {total}...", index, workspace.CaptionsFiles.Count);
+                Log.Logger.Information("Searching video {current} of {total}...", index, captionEntries.Count);
 
-                var captions = JsonConvert.DeserializeObject<List<Caption>>(File.ReadAllText(workspace.CaptionsFiles[video.Id]));
-                
-                var captionText = string.Join(" ", captions.Select(x => $"[@{x.Start}] {x.Value}"));
+                var captionText = string.Join(" ", captionEntries[video.Id].Select(x => $"[@{x.Start}] {x.Value}"));
 
                 var terms = new List<SpanQuery>();
                 foreach (var term in query.Trim().Split(" "))
@@ -121,7 +119,7 @@ namespace YouTubeArchiver.Index
                 topic.Results.Add(model);
             }
             
-            Log.Logger.Information("Found {total} videos, with {total} segments.", topic.Results.Count, topic.Results.Sum(x => x.Segments.Count));
+            Log.Information("Found {total} videos, with {total} segments.", topic.Results.Count, topic.Results.Sum(x => x.Segments.Count));
             
             Console.WriteLine(JsonConvert.SerializeObject(topic, Formatting.Indented));
             

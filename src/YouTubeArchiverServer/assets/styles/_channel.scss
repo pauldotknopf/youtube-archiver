@@ -1,5 +1,5 @@
-.video {
-    .video-title {
+.channel {
+    .channel-title {
         a {
             color: $body-color;
             @include hover {
@@ -7,14 +7,6 @@
                 color: $link-hover-color;
             }
         }
-        margin-bottom: map-get($spacers, 2);
-    }
-    .video-submitted, .video-from-channel {
-        color: $text-muted;
-        font-size: $font-size-base;
-        margin-bottom: map-get($spacers, 2);
-    }
-    .video-segments {
         margin-bottom: map-get($spacers, 2);
     }
     margin-bottom: map-get($spacers, 3);

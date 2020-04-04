@@ -15,6 +15,15 @@ namespace YouTubeArchiverServer
         public static IWebBuilder GetBuilder(
             List<ChannelModel> channels)
         {
+            var videosModel = new VideosModel();
+            foreach (var channel in channels)
+            {
+                foreach (var video in channel.Videos)
+                {
+                    videosModel.Videos.Add(video);
+                }
+            }
+            
             var builder = Statik.Statik.GetWebBuilder();
             
             builder.RegisterServices(services =>
@@ -39,10 +48,26 @@ namespace YouTubeArchiverServer
             
             builder.RegisterMvc("/", new
             {
-                controller = "Channel",
+                controller = "Videos",
                 action = "Index",
-                channelId = channels[0].Channel.Id
+                data = videosModel
             });
+            
+            builder.RegisterMvc("/channels", new
+            {
+                controller = "Channel",
+                action = "List"
+            });
+
+            foreach (var channel in channels)
+            {
+                builder.RegisterMvc($"/channel/{channel.Channel.Id}", new
+                {
+                    controller = "Channel",
+                    action = "Index",
+                    channelId = channel.Channel.Id
+                });
+            }
             
             RegisterVideos(builder, channels);
             RegisterTopics(builder, channels);
@@ -52,30 +77,44 @@ namespace YouTubeArchiverServer
 
         private static void RegisterTopics(IWebBuilder builder, List<ChannelModel> channels)
         {
-            bool hasTopic = false;
+            var topicsModel = new TopicsModel();
+
             foreach (var topic in channels.SelectMany(x => x.Topics))
             {
-                hasTopic = true;
+                var current = topicsModel.Topics.SingleOrDefault(x => x.Id == topic.Id);
+                if (current == null)
+                {
+                    current = new TopicModel();
+                    topicsModel.Topics.Add(current);
+                }
+
+                current.Id = topic.Id;
+                current.Topic = topic.Topic;
+                current.Videos.AddRange(topic.Videos);
+            }
+            
+            builder.RegisterMvc("/topics", new
+            {
+                controller = "Topic",
+                action = "List",
+                data = topicsModel
+            });
+            
+            foreach (var topic in topicsModel.Topics)
+            {
                 builder.RegisterMvc($"/topic/{topic.Id}", new
                 {
                     controller = "Topic",
                     action = "Index",
-                    topic
+                    data = topic
                 });
             }
 
-            if (hasTopic)
+            if (topicsModel.Topics.Any())
             {
                 builder.RegisterServices(services =>
-                    {
-                        services.Configure<Config>(config => { config.HasTopics = true; });
-                    });
-                builder.RegisterMvc("/topics", new
                 {
-                    controller = "Topic",
-                    action = "List",
-                    /*TODO: support multiple channels.*/
-                    channel = channels[0]
+                    services.Configure<Config>(x => x.HasTopics = true);
                 });
             }
         }

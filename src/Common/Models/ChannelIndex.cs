@@ -7,8 +7,5 @@ namespace Common.Models
     {
         [JsonProperty("channel")]
         public Channel Channel { get; set; }
-        
-        [JsonProperty("videos")]
-        public List<Video> Videos { get; set; }
     }
 }

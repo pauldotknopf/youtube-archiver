@@ -25,9 +25,7 @@ namespace YouTubeArchiver.Index
             var workspace = Helpers.GetWorkspace(indexDirectory);
             
             Log.Logger.Information("Discovering already downloaded videos...");
-            workspace.DiscoverLocalVideos();
-
-            var videos = workspace.Index.Videos.Where(x => !workspace.VideoFiles.ContainsKey(x.Id)).ToList();
+            var videos = workspace.GetVideos();
             
             Log.Logger.Information("Downloading {total} videos...", videos.Count);
 
