@@ -18,10 +18,5 @@ namespace YouTubeArchiverServer.Controllers
         {
             return View("List", _channels);
         }
-        
-        public ActionResult Index([FromRouteData]string channelId)
-        {
-            return View("Index", _channels.Single(x => x.Channel.Id == channelId));
-        }
     }
 }

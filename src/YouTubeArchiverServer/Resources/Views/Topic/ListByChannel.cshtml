@@ -1,7 +1,6 @@
-@model TopicsModel
+@model ChannelModel
 
 <div class="container">
-    <h1>Topics</h1>
     @foreach (var topic in Model.Topics)
     {
         if (topic.Videos.Count == 0)

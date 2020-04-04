@@ -2,7 +2,10 @@
 
 <div class="container">
     <div class="topic">
-        <h1 class="topic-title">@Model.Topic</h1>
+        @if (Model.Videos.Count == 0)
+        {
+            <p>No results were found.</p>
+        }
         @foreach (var video in Model.Videos.OrderByDescending(x => x.Video.Video.UploadedOn))
         {
             <div class="video">

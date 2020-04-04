@@ -99,7 +99,7 @@ namespace YouTubeArchiver.Index
         
         private static async Task<Common.Models.Channel> GetChannel(string channelId, YouTubeService youTubeService)
         {
-            var channelRequest = youTubeService.Channels.List("contentDetails,topicDetails,snippet");
+            var channelRequest = youTubeService.Channels.List("contentDetails,snippet");
             channelRequest.Id = channelId;
 
             var channelResponse = (await channelRequest.ExecuteAsync());

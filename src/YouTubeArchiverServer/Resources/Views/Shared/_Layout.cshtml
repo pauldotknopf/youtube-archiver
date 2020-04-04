@@ -43,12 +43,9 @@
             <a class="nav-link" href="@Url.Content("~/channels")">channels</a>
           </li>
         }
-        @if (Config.Value.HasTopics)
-        {
-          <li class="nav-item">
-            <a class="nav-link" href="@Url.Content("~/topics")">topics</a>
-          </li>
-        }
+        <li class="nav-item">
+          <a class="nav-link" href="@Url.Content("~/topics")">topics</a>
+        </li>
       </ul>
     </div>
   </div>
