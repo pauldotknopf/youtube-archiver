@@ -69,6 +69,9 @@ namespace YouTubeArchiver.Index
             {
                 Channel = channel,
             }, Formatting.Indented));
+
+            Log.Information("Discovering existing videos...");
+            var existingVideos = IndexWorkspace.Create(indexDirectory).GetVideos();
             
             Log.Information("Saving videos...");
 
@@ -80,6 +83,10 @@ namespace YouTubeArchiver.Index
             
             foreach (var video in videos)
             {
+                if (existingVideos.Contains(video))
+                {
+                    continue;
+                }
                 Log.Information("Saving {video}...", video.Title);
                 var videoFile = Path.Combine(videosDirectory, $"{video.Id}.json");
                 if (File.Exists(videoFile))
@@ -90,6 +97,8 @@ namespace YouTubeArchiver.Index
             }
             
             // TODO: Check if videos are deleted...
+            
+            Log.Information("Done!");
         }
         
         private static async Task<Channel> GetChannel(string channelId)
