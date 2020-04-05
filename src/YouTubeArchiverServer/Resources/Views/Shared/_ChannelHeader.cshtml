@@ -1,0 +1,17 @@
+@model ChannelModel
+
+<div class="secondary-menu navbar navbar-expand">
+    <div class="container">
+      <span class="navbar-text">
+        @Model.Channel.Title
+      </span>
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="@Url.Content($"~/channel/{Model.Channel.Id}")">videos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="@Url.Content($"~/topics/{Model.Channel.Id}")">topics</a>
+        </li>
+      </ul>
+    </div>
+  </div>

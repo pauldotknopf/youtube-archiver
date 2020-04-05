@@ -13,5 +13,8 @@ namespace Common.Models
         
         [JsonProperty("uploaded-on")]
         public DateTimeOffset? UploadedOn { get; set; }
+        
+        [JsonProperty("deleted")]
+        public bool Deleted { get; set; }
     }
 }

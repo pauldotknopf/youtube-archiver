@@ -16,14 +16,13 @@ namespace YouTubeArchiver
             
             var rootCommand = new RootCommand
             {
-               AuthCommand.Create(),
-               CaptionsCommand.Create(),
-               IndexCommand.Create(),
-               SearchCommand.Create(),
-               VideosCommand.Create()
+                Index.Base.Create(),
+                Auth.Create(),
+                DownloadVideo.Create()
             };
 
-            rootCommand.Description = "YouTube Archiver";
+            rootCommand.Name = "youtube-archiver";
+            rootCommand.Description = "Archive YouTube channels.";
 
             try
             {

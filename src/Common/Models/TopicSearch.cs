@@ -19,15 +19,6 @@ namespace Common.Models
             [JsonProperty("id")]
             public string Id { get; set; }
             
-            [JsonProperty("title")]
-            public string Title { get; set; }
-            
-            [JsonProperty("url")]
-            public string Url { get; set; }
-            
-            [JsonProperty("uploadedOn")]
-            public string UploadedOn { get; set; }
-
             [JsonProperty("segments")]
             public List<Segment> Segments { get; set; }
             
@@ -38,9 +29,6 @@ namespace Common.Models
                 
                 [JsonProperty("location")]
                 public int Location { get; set; }
-                
-                [JsonProperty("directUrl")]
-                public string DirectUrl { get; set; }
             }
         }
     }

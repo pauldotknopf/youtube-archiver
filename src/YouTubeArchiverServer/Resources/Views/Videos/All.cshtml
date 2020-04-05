@@ -1,0 +1,21 @@
+@model VideosModel
+
+<div class="container">
+    <div class="videos">
+        <h1 class="videos-title">Videos</h1>
+        @foreach (var video in Model.Videos.OrderByDescending(x => x.Video.UploadedOn))
+        {
+            <div class="video">
+                <h2 class="video-title">
+                    <a href="@Url.Content($"~/video/{video.Video.Id}")">@video.Video.Title</a>
+                </h2>
+                <p class="video-from-channel">
+                    from <a href="@Url.Content($"~/channel/{video.Channel.Channel.Id}")">@(video.Channel.Channel.Title)</a>
+                </p>
+                <p class="video-submitted">
+                    uploaded on @(video.Video.UploadedOn.HasValue ? @video.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
+                </p>
+            </div>
+        }
+    </div>
+</div>

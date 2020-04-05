@@ -1,0 +1,63 @@
+@model VideoModel
+
+@section navbarSecondary
+{
+    @await Html.PartialAsync("_ChannelHeader", Model.Channel)
+}
+
+<div class="container">
+    <div class="video">
+        <h1 class="video-title">@Model.Video.Title</h1>
+        <p class="video-from-channel">
+            from <a href="@Url.Content($"~/channel/{Model.Channel.Channel.Id}")">@(Model.Channel.Channel.Title)</a>
+        </p>
+        <p class="video-submitted">
+            uploaded on @(Model.Video.UploadedOn.HasValue ? @Model.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
+        </p>
+        <div class="embed-responsive embed-responsive-16by9">
+            <div id="player"></div>
+        </div>
+    </div>
+    @if (Model.MentionedTopics.Count > 0)
+    {
+        <div class="video-topics">
+            <h2 class="video-topics-title">Topics</h2>
+            @foreach (var topic in Model.MentionedTopics)
+            {
+                <div class="topic">
+                    <h3>@topic.Topic</h3>
+                    <div class="video-segments">
+                        @foreach (var segment in topic.Videos.Where(x => x.Video.Video.Id == Model.Video.Id).SelectMany(x => x.Segments))
+                        {
+                            <div class="video-segment">
+                                <a href="javascript::void(0);" onclick="seekTo(@segment.Location); return false;">@@@segment.FriendlyLocation</a> @Html.Raw(segment.Text)
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section scripts {
+    <script type="text/javascript">
+        var player = YouTubeArchiverServer.youTubePlayer("player");
+        var seekToInitialDone = false;
+        player.on("stateChange", function(e) {
+            if(e.data === 1 && !seekToInitialDone) {
+                seekToInitialDone = true;
+                var seekTo = parseInt(new URLSearchParams(window.location.search).get("t"));
+                if(seekTo) {
+                    player.seekTo(seekTo, true);
+                }
+            }
+        });
+        player.loadVideoById("@Model.Video.Id");
+        player.playVideo();
+        
+        window.seekTo = function(location) {
+            player.seekTo(location, true);
+        }
+    </script>
+}
