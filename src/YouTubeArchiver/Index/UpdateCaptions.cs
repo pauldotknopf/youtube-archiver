@@ -53,6 +53,7 @@ namespace YouTubeArchiver.Index
                     if (caption == null)
                     {
                         Log.Logger.Warning("No caption present.");
+                        workspace.SaveCaptions(video.Id, new List<Caption>());
                         continue;
                     }
 
