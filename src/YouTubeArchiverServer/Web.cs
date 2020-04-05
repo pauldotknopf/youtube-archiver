@@ -31,13 +31,13 @@ namespace YouTubeArchiverServer
                     .AddRazorRuntimeCompilation();
                 services.Configure<MvcRazorRuntimeCompilationOptions>(options =>
                 {
-                    //options.FileProviders.Add(new Statik.Embedded.EmbeddedFileProvider(typeof(Program).Assembly, "YouTubeArchiverServer.Resources"));
-                    options.FileProviders.Add(new PhysicalFileProvider("/home/pknopf/git/youtube-archiver/src/YouTubeArchiverServer/Resources"));
+                    options.FileProviders.Add(new Statik.Embedded.EmbeddedFileProvider(typeof(Program).Assembly, "YouTubeArchiverServer.Resources"));
+                    //options.FileProviders.Add(new PhysicalFileProvider("/home/pknopf/git/youtube-archiver/src/YouTubeArchiverServer/Resources"));
                 });
             });
             
-            //builder.RegisterFileProvider(new Statik.Embedded.EmbeddedFileProvider(typeof(Program).Assembly, "YouTubeArchiverServer.Resources.wwwroot"));
-            builder.RegisterFileProvider(new PhysicalFileProvider("/home/pknopf/git/youtube-archiver/src/YouTubeArchiverServer/Resources/wwwroot"));
+            builder.RegisterFileProvider(new Statik.Embedded.EmbeddedFileProvider(typeof(Program).Assembly, "YouTubeArchiverServer.Resources.wwwroot"));
+            //builder.RegisterFileProvider(new PhysicalFileProvider("/home/pknopf/git/youtube-archiver/src/YouTubeArchiverServer/Resources/wwwroot"));
             
             builder.RegisterMvc("/", new
             {
@@ -95,16 +95,23 @@ namespace YouTubeArchiverServer
                     action = "TopicVideos",
                     topicId = topic.Id
                 }, new PageState(topic.Topic));
-
-                foreach (var channel in channels)
+            }
+            
+            foreach (var channel in channels)
+            {
+                foreach (var topic in channel.Topics)
                 {
-                    builder.RegisterMvc($"/topic/{topic.Id}/channel/{channel.Channel.Id}", new
+                    if (topic.Videos.Count > 0)
+                
                     {
-                        controller = "Topic",
-                        action = "TopicVideosForChannel",
-                        topicId = topic.Id,
-                        channelId = channel.Channel.Id
-                    }, new PageState($"{topic.Topic} - {channel.Channel.Title}"));
+                        builder.RegisterMvc($"/topic/{topic.Id}/channel/{channel.Channel.Id}", new
+                        {
+                            controller = "Topic",
+                            action = "TopicVideosForChannel",
+                            topicId = topic.Id,
+                            channelId = channel.Channel.Id
+                        }, new PageState($"{topic.Topic} - {channel.Channel.Title}"));
+                    }
                 }
             }
         }

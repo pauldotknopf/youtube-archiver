@@ -7,21 +7,23 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common;
 using Serilog;
+using Statik.Hosting.Impl;
 
 namespace YouTubeArchiverServer
 { 
     partial class Program
     {
-        class ServeCommand
+        class GenerateCommand
         {
             public static Command Create()
             {
-                var command = new Command("serve")
+                var command = new Command("generate")
                 {
-                    new Option("port")
+                    new Option("output")
                     {
-                        Argument = new Argument<int>(() => 8000)
+                        Argument = new Argument<string>
                         {
+                            Name = "output",
                             Arity = ArgumentArity.ExactlyOne
                         }
                     },
@@ -43,19 +45,25 @@ namespace YouTubeArchiverServer
                     }
                 };
 
-                command.Handler = CommandHandler.Create(typeof(ServeCommand).GetMethod(nameof(Run)));
+                command.Handler = CommandHandler.Create(typeof(GenerateCommand).GetMethod(nameof(Run)));
 
                 return command;
             }
             
-            public static void Run(int port, string appBase, string configPath)
+            public static void Run(string output, string appBase, string configPath)
             {
-                using (var host = BuildWeb(configPath).BuildWebHost(appBase, port))
+                if (string.IsNullOrEmpty(output))
                 {
-                    host.Listen();
-                    Log.Logger.Information($"Listening on port {port}...");
-                    Log.Logger.Information($"Press [enter] to quit.");
-                    Console.ReadLine();
+                    output = Path.Combine(Directory.GetCurrentDirectory(), "output");
+                }
+
+                output = Path.GetFullPath(output);
+                
+                Log.Information("Generate web to {output}...", output);
+                
+                using (var host = BuildWeb(configPath).BuildVirtualHost(appBase))
+                {
+                    new HostExporter().Export(host, output);
                 }
                 
                 Log.Information("Done!");
