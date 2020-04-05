@@ -7,19 +7,21 @@ using Statik.Files;
 using Statik.Mvc;
 using Statik.Web;
 using YouTubeArchiverServer.Models;
+using YouTubeArchiverServer.State;
 
 namespace YouTubeArchiverServer
 {
     public class Web
     {
         public static IWebBuilder GetBuilder(
-            List<ChannelModel> channels)
+            List<ChannelModel> channels, Config config)
         {
             var builder = Statik.Statik.GetWebBuilder();
             
             builder.RegisterServices(services =>
             {
                 services.AddSingleton(channels);
+                services.AddSingleton(config);
             });
             
             builder.RegisterMvcServices();
@@ -83,24 +85,26 @@ namespace YouTubeArchiverServer
                 });
             }
             
-            foreach (var topicId in channels.SelectMany(x => x.Topics).Select(x => x.Id).Distinct())
+            foreach (var topic in channels.SelectMany(x => x.Topics)
+                .GroupBy(x => x.Id)
+                .Select(x => x.First()))
             {
-                builder.RegisterMvc($"/topic/{topicId}", new
+                builder.RegisterMvc($"/topic/{topic.Id}", new
                 {
                     controller = "Topic",
                     action = "TopicVideos",
-                    topicId
-                });
+                    topicId = topic.Id
+                }, new PageState(topic.Topic));
 
                 foreach (var channel in channels)
                 {
-                    builder.RegisterMvc($"/topic/{topicId}/channel/{channel.Channel.Id}", new
+                    builder.RegisterMvc($"/topic/{topic.Id}/channel/{channel.Channel.Id}", new
                     {
                         controller = "Topic",
                         action = "TopicVideosForChannel",
-                        topicId,
+                        topicId = topic.Id,
                         channelId = channel.Channel.Id
-                    });
+                    }, new PageState($"{topic.Topic} - {channel.Channel.Title}"));
                 }
             }
         }

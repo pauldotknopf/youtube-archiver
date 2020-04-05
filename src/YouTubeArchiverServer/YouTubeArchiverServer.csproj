@@ -15,39 +15,11 @@
     <PackageReference Include="Statik.Files" Version="0.13.0" />
     <PackageReference Include="Statik.Mvc" Version="0.13.0" />
     <PackageReference Include="System.CommandLine" Version="0.3.0-alpha.20054.1" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Compile Include="../YouTubeArchiver/Models/*">
-      <Link>Models/*</Link>
-    </Compile>
+    <PackageReference Include="YamlDotNet" Version="8.1.0" />
   </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="ViewModels" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Content Update="Resources\Views\Videos\ForChannel.cshtml">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Update="Resources\Views\Topic\TopicVideos.cshtml">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Update="Resources\Views\Topic\ListByChannel.cshtml">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Update="Resources\Views\Topic\TopicVideosForChannel.cshtml">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
   </ItemGroup>
   
 </Project>

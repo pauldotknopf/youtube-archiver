@@ -1,5 +1,10 @@
 @model VideoModel
 
+@section navbarSecondary
+{
+    @await Html.PartialAsync("_ChannelHeader", Model.Channel)
+}
+
 <div class="container">
     <div class="video">
         <h1 class="video-title">@Model.Video.Title</h1>

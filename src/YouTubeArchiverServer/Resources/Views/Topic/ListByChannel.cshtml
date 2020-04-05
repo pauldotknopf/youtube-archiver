@@ -1,6 +1,12 @@
 @model ChannelModel
 
+@section navbarSecondary
+{
+    @await Html.PartialAsync("_ChannelHeader", Model)
+}
+
 <div class="container">
+    <h1>Topics</h1>
     @foreach (var topic in Model.Topics)
     {
         if (topic.Videos.Count == 0)
@@ -9,7 +15,7 @@
         }
         <div class="topic">
             <h2 class="topic-title">
-                <a href="@Url.Content($"~/topic/{topic.Id}")">@topic.Topic</a>
+                <a href="@Url.Content($"~/topic/{topic.Id}/channel/{Model.Channel.Id}")">@topic.Topic</a>
             </h2>
             <p class="topic-results">
                 Found (@topic.Videos.Count) videos.

@@ -33,6 +33,14 @@ namespace YouTubeArchiverServer
                             Arity = ArgumentArity.ExactlyOne
                         }
                     },
+                    new Option(new []{"-c", "--config-path"})
+                    {
+                        Argument = new Argument<string>
+                        {
+                            Name = "config-path",
+                            Arity = ArgumentArity.ExactlyOne
+                        }
+                    },
                     new Option(new []{"-i", "--index-directory"}, "The directory where the index exists.")
                     {
                         Name = "index-directory",
@@ -48,9 +56,39 @@ namespace YouTubeArchiverServer
                 return command;
             }
             
-            public static Task Run(int port, string appBase, List<string> indexDirectory)
+            public static Task Run(int port, string appBase, List<string> indexDirectory, string configPath)
             {
-                var indexes = indexDirectory.Select(IndexWorkspace.Create).ToList();
+                ServeConfig config;
+
+                if (!string.IsNullOrEmpty(configPath))
+                {
+                    if (!File.Exists(configPath))
+                    {
+                        Log.Error("The config path doesn't exist.");
+                        Environment.Exit(1);
+                    }
+                    
+                    config = ServeConfig.Load(configPath);
+                }
+                else
+                {
+                    config = new ServeConfig();
+                }
+
+                if (config.Indexes == null)
+                {
+                    config.Indexes = new List<string>();
+                }
+
+                if (string.IsNullOrEmpty(config.Title))
+                {
+                    config.Title = "YouTube Archive";
+                }
+                
+                config.Indexes.AddRange(indexDirectory);
+                config.Indexes = config.Indexes.Distinct().ToList();
+                
+                var indexes = config.Indexes.Select(IndexWorkspace.Create).ToList();
 
                 if (indexes.Count == 0)
                 {
@@ -60,7 +98,11 @@ namespace YouTubeArchiverServer
                 
                 var builder = Web.GetBuilder(
                     ModelBuilder.BuildChannelModels(
-                        indexes.Cast<IIndexWorkspace>().ToList()));
+                        indexes.Cast<IIndexWorkspace>().ToList()), new Config
+                    {
+                        SiteTitle = config.Title,
+                        FooterHtml = config.FooterHtml
+                    });
                 
                 using (var host = builder.BuildWebHost(appBase, port))
                 {

@@ -1,8 +1,13 @@
 @model ChannelModel
 
+@section navbarSecondary
+{
+    @await Html.PartialAsync("_ChannelHeader", Model)
+}
+
 <div class="container">
     <div class="videos">
-        <h1 class="videos-title">@Model.Channel.Title</h1>
+        <h1 class="videos-title">Videos</h1>
         @foreach (var video in Model.Videos.OrderByDescending(x => x.Video.UploadedOn))
         {
             <div class="video">

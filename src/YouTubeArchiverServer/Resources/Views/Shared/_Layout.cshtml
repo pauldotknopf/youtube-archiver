@@ -1,9 +1,9 @@
 @using Microsoft.Extensions.Options
 @inject IPageRegistry PageRegistry;
 @inject List<ChannelModel> Channels;
-@inject IOptions<Config> Config;
+@inject Config Config;
 @{
-  string siteTitle = "YouTube Archive";
+  string siteTitle = Config.SiteTitle;
   if (Channels.Count == 1)
   {
     siteTitle = Channels[0].Channel.Title;
@@ -30,30 +30,37 @@
   <link href="@Url.Content("~/dist/styles.css")" rel="stylesheet" type="text/css"/>
 </head>
 <body>
-<header class="bg-light mb-4">
-  <div class="navbar navbar-expand">
+<header class="mb-4">
+  <div class="bg-light navbar navbar-expand">
     <div class="container">
       <a href="@Url.Content("~/")" class="navbar-brand d-flex">
-         <strong>@siteTitle</strong>
+        <strong>@siteTitle</strong>
       </a>
       <ul class="navbar-nav">
-        @if (Channels.Count > 1)
-        {
-          <li class="nav-item">
-            <a class="nav-link" href="@Url.Content("~/channels")">channels</a>
-          </li>
-        }
+        <li class="nav-item">
+          <a class="nav-link" href="@Url.Content("~/channels")">channels</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="@Url.Content("~/")">videos</a>
+        </li>
         <li class="nav-item">
           <a class="nav-link" href="@Url.Content("~/topics")">topics</a>
         </li>
       </ul>
     </div>
   </div>
+  @await RenderSectionAsync("navbarSecondary", false)
 </header>
 <main>
   @RenderBody()
 </main>
+@if (!string.IsNullOrEmpty(Config.FooterHtml))
+{
+  <footer class="bg-light py-3 mt-5 text-muted text-center">
+    @Html.Raw(Config.FooterHtml)
+  </footer>
+}
 <script src="@Url.Content("~/dist/scripts.js")"></script>
-@RenderSection("scripts", false)
+@await RenderSectionAsync("scripts", false)
 </body>
 </html>
