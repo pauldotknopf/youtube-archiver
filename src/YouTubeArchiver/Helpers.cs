@@ -36,7 +36,7 @@ namespace YouTubeArchiver
                 Environment.Exit(1);
             }
 
-            var key = File.ReadAllText(youtubeAuthFile);
+            var key = File.ReadAllText(youtubeAuthFile).TrimEnd(Environment.NewLine.ToCharArray());
             
             if (string.IsNullOrEmpty(key))
             {
