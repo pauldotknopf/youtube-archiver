@@ -28,25 +28,25 @@ namespace YouTubeArchiver
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(youtubeScrapeFile));
         }
 
-        public static ClientSecrets GetOAuthSecrets()
+        public static string GetApiKey()
         {
             var youtubeAuthFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".youtube-archiver-auth.json");
 
             if (!File.Exists(youtubeAuthFile))
             {
-                Log.Error("No auth found for oauth, run \"youtube-archiver auth oauth\".");
+                Log.Error("No token found for requests, run \"youtube-archiver auth key\".");
                 Environment.Exit(1);
             }
 
-            var secrets = JsonConvert.DeserializeObject<ClientSecrets>(File.ReadAllText(youtubeAuthFile));
-
-            if (string.IsNullOrEmpty(secrets.ClientId) || string.IsNullOrEmpty(secrets.ClientSecret))
+            var key = File.ReadAllText(youtubeAuthFile);
+            
+            if (string.IsNullOrEmpty(key))
             {
-                Log.Logger.Error("Invalid client id/secret.");
+                Log.Logger.Error("Invalid API key.");
                 Environment.Exit(1);
             }
 
-            return secrets;
+            return key;
         }
         
         public static string GetIndexDirectory(string indexDirectory)

@@ -154,17 +154,10 @@ namespace YouTubeArchiver.Index
         
         private static async Task<YouTubeService> GetYouTubeService()
         {
-            var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                Helpers.GetOAuthSecrets(),
-                new[] { YouTubeService.Scope.YoutubeForceSsl },
-                "user",
-                CancellationToken.None
-            );
-        
             return new YouTubeService(new BaseClientService.Initializer
             {
-                HttpClientInitializer = credential,
-                ApplicationName = "youtube-archiver"
+                ApplicationName = "youtube-archiver",
+                ApiKey = Helpers.GetApiKey()
             });
         }
     }
