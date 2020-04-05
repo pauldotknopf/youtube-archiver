@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Web;
 using Common;
 using Common.Models;
-using Google.Apis.Auth.OAuth2;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -38,7 +36,7 @@ namespace YouTubeArchiver
                 Environment.Exit(1);
             }
 
-            var key = File.ReadAllText(youtubeAuthFile);
+            var key = File.ReadAllText(youtubeAuthFile).TrimEnd(Environment.NewLine.ToCharArray());
             
             if (string.IsNullOrEmpty(key))
             {

@@ -4,7 +4,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Text;
-using Google.Apis.Auth.OAuth2;
 using Newtonsoft.Json;
 using Serilog;
 

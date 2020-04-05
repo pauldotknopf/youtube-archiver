@@ -4,14 +4,11 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using Common;
 using Common.Models;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Services;
-using Google.Apis.YouTube.v3;
-using Google.Apis.YouTube.v3.Data;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -54,13 +51,11 @@ namespace YouTubeArchiver.Index
                 Environment.Exit(1);
             }
             
-            var youtubeService = await GetYouTubeService();
-
             Log.Logger.Information("Getting channel info for {channelId}...", channelId);
-            var channel = await GetChannel(channelId, youtubeService);
+            var channel = await GetChannel(channelId);
 
             Log.Logger.Information("Getting uploaded videos for channel {channel}...", channel.Title);
-            var videos = await GetVideos(channel, youtubeService);
+            var videos = await GetVideos(channel.UploadPlaylistId);
 
             Log.Logger.Information("Saving channel info...");
             var indexFile = Path.Combine(indexDirectory, "index.json");
@@ -97,13 +92,23 @@ namespace YouTubeArchiver.Index
             // TODO: Check if videos are deleted...
         }
         
-        private static async Task<Common.Models.Channel> GetChannel(string channelId, YouTubeService youTubeService)
+        private static async Task<Channel> GetChannel(string channelId)
         {
-            var channelRequest = youTubeService.Channels.List("contentDetails,snippet");
-            channelRequest.Id = channelId;
+            var builder = new UriBuilder("https://www.googleapis.com/youtube/v3/channels");
 
-            var channelResponse = (await channelRequest.ExecuteAsync());
+            var query = HttpUtility.ParseQueryString(builder.Query);
+            query["part"] = "contentDetails,snippet";
+            query["id"] = channelId;
+            query["key"] = Helpers.GetApiKey();
 
+            builder.Query = query.ToString();
+            
+            var httpClient = new HttpClient();
+            var responseMessage = await httpClient.GetAsync(builder.ToString());
+            responseMessage.EnsureSuccessStatusCode();
+
+            var channelResponse = JsonConvert.DeserializeObject<ChannelsResponse>(await responseMessage.Content.ReadAsStringAsync());
+            
             if (channelResponse.Items == null || channelResponse.Items.Count != 1)
             {
                 Log.Logger.Error("Couldn't get channel by the given id.");
@@ -112,7 +117,7 @@ namespace YouTubeArchiver.Index
 
             var channel = channelResponse.Items.Single();
 
-            return new Common.Models.Channel
+            return new Channel
             {
                 Id = channel.Id,
                 Title = channel.Snippet.Title,
@@ -120,45 +125,123 @@ namespace YouTubeArchiver.Index
             };
         }
 
-        private static async Task<List<Common.Models.Video>> GetVideos(Common.Models.Channel channel, YouTubeService youTubeService)
+        private static async Task<List<Video>> GetVideos(string playlistId)
         {
-            var videosRequest = youTubeService.PlaylistItems.List("snippet,contentDetails");
-            videosRequest.PlaylistId = channel.UploadPlaylistId;
-            videosRequest.MaxResults = 50;
+            var videos = new List<Video>();
+            
+            var playlistItems = await GetPlaylistItems(playlistId, null);
 
-            var videos = new List<PlaylistItem>();
-            var videosResponse = await videosRequest.ExecuteAsync();
-
-            while (videosResponse.Items.Count > 0)
+            while (playlistItems.Items.Count > 0)
             {
-                videos.AddRange(videosResponse.Items);
-
-                if (!string.IsNullOrEmpty(videosResponse.NextPageToken))
+                videos.AddRange(playlistItems.Items.Select(x => new Video
                 {
-                    videosRequest.PageToken = videosResponse.NextPageToken;
-                    videosResponse = await videosRequest.ExecuteAsync();
+                    Id = x.ContentDetails.VideoId,
+                    Title = x.Snippet.Title,
+                    UploadedOn = x.ContentDetails.VideoPublishedAt
+                }));
+
+                if (!string.IsNullOrEmpty(playlistItems.NextPageToken))
+                {
+                    playlistItems = await GetPlaylistItems(playlistId, playlistItems.NextPageToken);
                 }
                 else
                 {
-                    videosResponse.Items.Clear();
+                    playlistItems.Items.Clear();
                 }
             }
 
-            return videos.Select(x => new Common.Models.Video
-            {
-                Id = x.ContentDetails.VideoId,
-                Title = x.Snippet.Title,
-                UploadedOn = x.Snippet.PublishedAt.HasValue ? new DateTimeOffset(x.Snippet.PublishedAt.Value) : (DateTimeOffset?)null
-            }).ToList();
+            return videos;
         }
         
-        private static async Task<YouTubeService> GetYouTubeService()
+        private static async Task<PlaylistItemsResponse> GetPlaylistItems(string playlistId, string pageToken)
         {
-            return new YouTubeService(new BaseClientService.Initializer
+            var builder = new UriBuilder("https://www.googleapis.com/youtube/v3/playlistItems");
+            
+            var query = HttpUtility.ParseQueryString(builder.Query);
+            query["part"] = "contentDetails,snippet";
+            query["maxResults"] = "50";
+            query["playlistId"] = playlistId;
+            query["key"] = Helpers.GetApiKey();
+            if (!string.IsNullOrEmpty(pageToken))
             {
-                ApplicationName = "youtube-archiver",
-                ApiKey = Helpers.GetApiKey()
-            });
+                query["pageToken"] = pageToken;
+            }
+
+            builder.Query = query.ToString();
+            
+            var httpClient = new HttpClient();
+            var responseMessage = await httpClient.GetAsync(builder.ToString());
+            responseMessage.EnsureSuccessStatusCode();
+
+            return JsonConvert.DeserializeObject<PlaylistItemsResponse>(await responseMessage.Content.ReadAsStringAsync());
+        }
+
+        private class PlaylistItemsResponse
+        {
+            public string NextPageToken { get; set; }
+            
+            [JsonProperty("items")]
+            public List<PlaylistItemResponse> Items { get; set; }
+            
+            public class PlaylistItemResponse
+            {
+                [JsonProperty("snippet")]
+                public SnippetResponse Snippet { get; set; }
+                
+                public class SnippetResponse
+                {
+                    [JsonProperty("title")]
+                    public string Title { get; set; }
+                }
+
+                [JsonProperty("contentDetails")]
+                public ContentDetailsResponse ContentDetails { get; set; }
+                
+                public class ContentDetailsResponse
+                {
+                    [JsonProperty("videoId")]
+                    public string VideoId { get; set; }
+                    
+                    [JsonProperty("videoPublishedAt")]
+                    public DateTimeOffset? VideoPublishedAt { get; set; }
+                }
+            }
+        }
+        
+        private class ChannelsResponse
+        {
+            [JsonProperty("items")]
+            public List<ChannelResponse> Items { get; set; }
+            
+            public class ChannelResponse
+            {
+                [JsonProperty("id")]
+                public string Id { get; set; }
+                
+                [JsonProperty("snippet")]
+                public SnippetResponse Snippet { get; set; }
+                
+                public class SnippetResponse
+                {
+                    [JsonProperty("title")]
+                    public string Title { get; set; }
+                }
+                
+                [JsonProperty("contentDetails")]
+                public ContentDetailsResponse ContentDetails { get; set; }
+
+                public class ContentDetailsResponse
+                {
+                    [JsonProperty("relatedPlaylists")]
+                    public RelatedPlaylistsResponse RelatedPlaylists { get; set; }
+                    
+                    public class RelatedPlaylistsResponse
+                    {
+                        [JsonProperty("uploads")]
+                        public string Uploads { get; set; }
+                    }
+                }
+            }
         }
     }
-}
+}    
