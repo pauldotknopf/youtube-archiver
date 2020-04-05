@@ -16,9 +16,9 @@ namespace YouTubeArchiver
         {
             var command = new Command("auth")
             {
-                new Command("oauth")
+                new Command("key")
                 {
-                    Handler = CommandHandler.Create(typeof(Auth).GetMethod(nameof(OAuth)))
+                    Handler = CommandHandler.Create(typeof(Auth).GetMethod(nameof(Key)))
                 },
                 new Command("scraping")
                 {
@@ -30,21 +30,13 @@ namespace YouTubeArchiver
         }
         
         // ReSharper disable once MemberCanBePrivate.Local
-        public static void OAuth()
+        public static void Key()
         {
-            var clientId = ReadLine.Read("Client id:");
+            var apiKey = ReadLine.Read("API key:");
 
-            if (string.IsNullOrEmpty(clientId))
+            if (string.IsNullOrEmpty(apiKey))
             {
-                Log.Logger.Error("You must provide a client id.");
-                Environment.Exit(1);
-            }
-        
-            var clientSecret = ReadLine.Read("Client secret:");
-
-            if (string.IsNullOrEmpty(clientSecret))
-            {
-                Log.Logger.Error("You must provide a client secret.");
+                Log.Logger.Error("You must provide an API key.");
                 Environment.Exit(1);
             }
         
@@ -55,11 +47,7 @@ namespace YouTubeArchiver
                 File.Delete(youtubeAuthFile);
             }
         
-            File.WriteAllText(youtubeAuthFile, JsonConvert.SerializeObject(new ClientSecrets
-            {
-                ClientId = clientId,
-                ClientSecret = clientSecret
-            }, Formatting.Indented));
+            File.WriteAllText(youtubeAuthFile, apiKey);
         
             Log.Logger.Information("Saved!");
         }
