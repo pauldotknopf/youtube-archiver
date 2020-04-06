@@ -10,12 +10,16 @@ namespace Common.Models
             Results = new List<VideoResult>();
         }
         
+        [JsonProperty("topic")]
         public string Topic { get; set; }
         
+        [JsonProperty("aliases")]
         public List<string> Aliases { get; set; }
         
+        [JsonProperty("hash")]
         public string Hash { get; set; }
         
+        [JsonProperty("results")]
         public List<VideoResult> Results { get; set; }
         
         public class VideoResult
