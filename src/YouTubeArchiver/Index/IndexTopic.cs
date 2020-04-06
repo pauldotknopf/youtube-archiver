@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Common.Models;
 using Newtonsoft.Json;
@@ -36,7 +37,7 @@ namespace YouTubeArchiver.Index
         {
             var workspace = Helpers.GetWorkspace(indexDirectory);
 
-            var queryFull = string.Join(" ", query);
+            var queryFull = string.Join(" ", query).Trim();
             if (string.IsNullOrEmpty(queryFull))
             {
                 Log.Error("No query given.");
@@ -55,17 +56,21 @@ namespace YouTubeArchiver.Index
             }
             
             Log.Logger.Information("Discovering current topics...");
-            var topics = workspace.GetTopics();
+
+            string topic;
+            List<string> aliases;
+            ParseTopic(queryFull, out topic, out aliases);
             
             var result = new TopicSearch();
-            result.Topic = queryFull;
+            result.Topic = topic;
+            result.Aliases = aliases;
             result.Results = new List<TopicSearch.VideoResult>();
             
             Log.Logger.Information("Searching captions for {count} videos...", captionEntries.Count);
 
             foreach (var captions in captionEntries)
             {
-                var segments = SearchEngine.Search(captions.Value, queryFull);
+                var segments = SearchEngine.Search(captions.Value, aliases ?? new List<string>{topic});
 
                 if (segments.Count == 0)
                 {
@@ -86,6 +91,26 @@ namespace YouTubeArchiver.Index
             workspace.SaveTopic(result);
             
             Log.Information("Done!");
+        }
+
+        private static void ParseTopic(string topic, out string name, out List<string> aliases)
+        {
+            var match = Regex.Match(topic, @"(.*)\((.*)\)");
+            if (match.Success)
+            {
+                name = match.Groups[1].Value;
+                aliases = match.Groups[2].Value.Split(",").Select(x => x.Trim()).ToList();
+            }
+            else
+            {
+                name = topic;
+                aliases = new List<string>();
+            }
+
+            if (aliases.Count == 0)
+            {
+                aliases = null;
+            }
         }
     }
 }

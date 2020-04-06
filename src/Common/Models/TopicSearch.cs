@@ -12,6 +12,8 @@ namespace Common.Models
         
         public string Topic { get; set; }
         
+        public List<string> Aliases { get; set; }
+        
         public List<VideoResult> Results { get; set; }
         
         public class VideoResult
