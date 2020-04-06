@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
@@ -114,7 +115,12 @@ namespace YouTubeArchiver.Index
             
             var httpClient = new HttpClient();
             var responseMessage = await httpClient.GetAsync(builder.ToString());
-            responseMessage.EnsureSuccessStatusCode();
+            
+            if (responseMessage.StatusCode != HttpStatusCode.OK)
+            {
+                Log.Error("Status code: {statusCode}: error: {error}", responseMessage.StatusCode, await responseMessage.Content.ReadAsStringAsync());
+                Environment.Exit(1);
+            }
 
             var channelResponse = JsonConvert.DeserializeObject<ChannelsResponse>(await responseMessage.Content.ReadAsStringAsync());
             
@@ -180,7 +186,12 @@ namespace YouTubeArchiver.Index
             
             var httpClient = new HttpClient();
             var responseMessage = await httpClient.GetAsync(builder.ToString());
-            responseMessage.EnsureSuccessStatusCode();
+
+            if (responseMessage.StatusCode != HttpStatusCode.OK)
+            {
+                Log.Error("Status code: {statusCode}: error: {error}", responseMessage.StatusCode, await responseMessage.Content.ReadAsStringAsync());
+                Environment.Exit(1);
+            }
 
             return JsonConvert.DeserializeObject<PlaylistItemsResponse>(await responseMessage.Content.ReadAsStringAsync());
         }

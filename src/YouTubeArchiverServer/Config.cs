@@ -5,5 +5,7 @@ namespace YouTubeArchiverServer
         public string SiteTitle { get; set; }
         
         public string FooterHtml { get; set; }
+        
+        public string GoogleTracking { get; set; }
     }
 }

@@ -62,5 +62,16 @@
 }
 <script src="@Url.Content("~/dist/scripts.js")"></script>
 @await RenderSectionAsync("scripts", false)
+@if (!string.IsNullOrEmpty(Config.GoogleTracking))
+{
+  <script async src="https://www.googletagmanager.com/gtag/js?id=@Config.GoogleTracking"></script>
+  <script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', '@Config.GoogleTracking');
+</script>
+}
 </body>
 </html>

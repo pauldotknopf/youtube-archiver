@@ -12,6 +12,8 @@ namespace YouTubeArchiverServer
         
         public string FooterHtml { get; set; }
         
+        public string GoogleTracking { get; set; }
+        
         public List<string> Indexes { get; set; }
         
         public static ServeConfig Load(string serveConfig)
