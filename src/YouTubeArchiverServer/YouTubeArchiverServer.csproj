@@ -5,6 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <PackAsTool>True</PackAsTool>
     <ToolCommandName>youtube-archiver-server</ToolCommandName>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
