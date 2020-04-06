@@ -65,16 +65,12 @@ namespace YouTubeArchiver.Index
                 var captionKeys = captionEntries.Select(x => x.Key).ToList();
                 captionKeys.Sort();
                 var hashInput = string.Join("", captionKeys);
-                if (aliases == null)
-                {
-                    hashInput += topic;
-                }
-                else
+                hashInput += topic;
+                if (aliases != null)
                 {
                     hashInput += string.Join("", aliases);
                 }
-
-                hash = hashInput.CalculateMD5Hash();
+                hash = hashInput.CalculateMD5Hash().Substring(0, 8);
             }
 
             {
@@ -137,6 +133,13 @@ namespace YouTubeArchiver.Index
             if (aliases.Count == 0)
             {
                 aliases = null;
+            }
+
+            name = name.Trim();
+            if ((aliases != null && aliases.Any(string.IsNullOrEmpty)) || string.IsNullOrEmpty(name))
+            {
+                Log.Error("Invalid topic {topic}.", topic);
+                Environment.Exit(1);
             }
         }
     }
