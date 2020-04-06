@@ -20,13 +20,13 @@ namespace YouTubeArchiver
                 throw new Exception("You must provide queries.");
             }
 
-            queries = queries.Select(x => (x ?? "").Trim()).ToList();
+            queries = queries.Select(x => (x ?? "").Trim().ToLower()).ToList();
             if (queries.Any(string.IsNullOrEmpty))
             {
                 throw new Exception("The queries must not be empty.");
             }
             
-            var captionText = string.Join(" ", captions.Select(x => $"[@{x.Start}] {x.Value}"));
+            var captionText = string.Join(" ", captions.Select(x => $"[@{x.Start}] {x.Value}")).ToLower();
 
             var nearQueries = new List<SpanQuery>();
 
