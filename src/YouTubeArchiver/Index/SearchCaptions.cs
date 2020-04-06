@@ -62,12 +62,8 @@ namespace YouTubeArchiver.Index
             var topic = new TopicSearch();
             topic.Topic = query;
 
-            int index = 0;
             foreach (var video in videosWithCaptions)
             {
-                index++;
-                Log.Logger.Information("Searching video {current} of {total}...", index, captionEntries.Count);
-
                 var captionText = string.Join(" ", captionEntries[video.Id].Select(x => $"[@{x.Start}] {x.Value}"));
 
                 var terms = new List<SpanQuery>();

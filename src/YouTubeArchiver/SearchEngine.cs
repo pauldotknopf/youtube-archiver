@@ -13,18 +13,34 @@ namespace YouTubeArchiver
 {
     public class SearchEngine
     {
-        public static List<SegmentResult> Search(List<Caption> captions, string query)
+        public static List<SegmentResult> Search(List<Caption> captions, List<string> queries)
         {
+            if (queries.Count == 0)
+            {
+                throw new Exception("You must provide queries.");
+            }
+
+            queries = queries.Select(x => (x ?? "").Trim()).ToList();
+            if (queries.Any(string.IsNullOrEmpty))
+            {
+                throw new Exception("The queries must not be empty.");
+            }
+            
             var captionText = string.Join(" ", captions.Select(x => $"[@{x.Start}] {x.Value}"));
 
-            var terms = new List<SpanQuery>();
-            foreach (var term in query.Trim().Split(" "))
+            var nearQueries = new List<SpanQuery>();
+
+            foreach (var query in queries)
             {
-                terms.Add(new SpanTermQuery(new Term("content", term)));
+                var terms = new List<SpanQuery>();
+                foreach (var term in query.Trim().Split(" "))
+                {
+                    terms.Add(new SpanTermQuery(new Term("content", term)));
+                }
+                nearQueries.Add(new SpanNearQuery(terms.ToArray(), 25, false));
             }
-            var spanNearQuery = new SpanNearQuery(terms.ToArray(), 25, false);
             
-            var queryScorer = new QueryScorer(spanNearQuery);
+            var queryScorer = new QueryScorer(new SpanOrQuery(nearQueries.ToArray()));
             var highlighter = new Highlighter(new MarkerFormatter(), queryScorer)
             {
                 TextFragmenter = new NullFragmenter()

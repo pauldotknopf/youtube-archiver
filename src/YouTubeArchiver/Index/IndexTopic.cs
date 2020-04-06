@@ -4,7 +4,9 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Common;
 using Common.Models;
 using Newtonsoft.Json;
 using Serilog;
@@ -36,7 +38,7 @@ namespace YouTubeArchiver.Index
         {
             var workspace = Helpers.GetWorkspace(indexDirectory);
 
-            var queryFull = string.Join(" ", query);
+            var queryFull = string.Join(" ", query).Trim();
             if (string.IsNullOrEmpty(queryFull))
             {
                 Log.Error("No query given.");
@@ -47,29 +49,55 @@ namespace YouTubeArchiver.Index
             
             Log.Logger.Information("Discovering captions...");
             var captionEntries = workspace.GetCaptions();
-
+            
             if (captionEntries.Count == 0)
             {
                 Log.Logger.Information("No captions are present.");
                 return;
             }
-            
-            Log.Logger.Information("Discovering current topics...");
-            var topics = workspace.GetTopics();
+          
+            string topic;
+            List<string> aliases;
+            ParseTopic(queryFull, out topic, out aliases);
+
+            string hash;
+            {
+                var captionKeys = captionEntries.Select(x => x.Key).ToList();
+                captionKeys.Sort();
+                var hashInput = string.Join("", captionKeys);
+                if (aliases == null)
+                {
+                    hashInput += topic;
+                }
+                else
+                {
+                    hashInput += string.Join("", aliases);
+                }
+
+                hash = hashInput.CalculateMD5Hash();
+            }
+
+            {
+                // Determine if this hash already exists.
+                var existingTopicSearch = workspace.FindTopic(topic);
+                if (existingTopicSearch != null && existingTopicSearch.Hash == hash)
+                {
+                    Log.Warning("This topic was already indexed, no changes were detected, skipping...");
+                    return;
+                }
+            }
             
             var result = new TopicSearch();
-            result.Topic = queryFull;
+            result.Hash = hash;
+            result.Topic = topic;
+            result.Aliases = aliases;
             result.Results = new List<TopicSearch.VideoResult>();
             
             Log.Logger.Information("Searching captions for {count} videos...", captionEntries.Count);
 
-            var index = 0;
             foreach (var captions in captionEntries)
             {
-                index++;
-                Log.Logger.Information("Searching video {current} of {total}...", index, captionEntries.Count);
-
-                var segments = SearchEngine.Search(captions.Value, queryFull);
+                var segments = SearchEngine.Search(captions.Value, aliases ?? new List<string>{topic});
 
                 if (segments.Count == 0)
                 {
@@ -88,6 +116,28 @@ namespace YouTubeArchiver.Index
             }
 
             workspace.SaveTopic(result);
+            
+            Log.Information("Done!");
+        }
+
+        private static void ParseTopic(string topic, out string name, out List<string> aliases)
+        {
+            var match = Regex.Match(topic, @"(.*)\((.*)\)");
+            if (match.Success)
+            {
+                name = match.Groups[1].Value;
+                aliases = match.Groups[2].Value.Split(",").Select(x => x.Trim()).ToList();
+            }
+            else
+            {
+                name = topic;
+                aliases = new List<string>();
+            }
+
+            if (aliases.Count == 0)
+            {
+                aliases = null;
+            }
         }
     }
 }

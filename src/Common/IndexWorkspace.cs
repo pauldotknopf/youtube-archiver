@@ -115,6 +115,18 @@ namespace Common
             return result;
         }
 
+        public TopicSearch FindTopic(string topic)
+        {
+            var topicKey = SanitizeTopic(topic);
+            var potential = Path.Combine(_directory, "topics", $"{topicKey}.json");
+            if (File.Exists(potential))
+            {
+                return JsonConvert.DeserializeObject<TopicSearch>(File.ReadAllText(potential));
+            }
+
+            return null;
+        }
+
         public void SaveTopic(TopicSearch topicSearch)
         {
             var topicsDirectory = Path.Combine(_directory, "topics");
