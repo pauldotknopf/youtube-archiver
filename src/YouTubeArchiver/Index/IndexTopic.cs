@@ -63,12 +63,8 @@ namespace YouTubeArchiver.Index
             
             Log.Logger.Information("Searching captions for {count} videos...", captionEntries.Count);
 
-            var index = 0;
             foreach (var captions in captionEntries)
             {
-                index++;
-                Log.Logger.Information("Searching video {current} of {total}...", index, captionEntries.Count);
-
                 var segments = SearchEngine.Search(captions.Value, queryFull);
 
                 if (segments.Count == 0)
@@ -88,6 +84,8 @@ namespace YouTubeArchiver.Index
             }
 
             workspace.SaveTopic(result);
+            
+            Log.Information("Done!");
         }
     }
 }
