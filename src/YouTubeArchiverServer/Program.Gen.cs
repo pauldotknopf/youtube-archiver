@@ -19,7 +19,7 @@ namespace YouTubeArchiverServer
             {
                 var command = new Command("generate")
                 {
-                    new Option("output")
+                    new Option("--output")
                     {
                         Argument = new Argument<string>
                         {
@@ -27,15 +27,15 @@ namespace YouTubeArchiverServer
                             Arity = ArgumentArity.ExactlyOne
                         }
                     },
-                    new Option("app-base")
+                    new Option("--app-base")
                     {
                         Argument = new Argument<string>
                         {
-                            Name = "appBase",
+                            Name = "app-base",
                             Arity = ArgumentArity.ExactlyOne
                         }
                     },
-                    new Option(new []{"-c", "--config-path"})
+                    new Option("--config-path")
                     {
                         Argument = new Argument<string>
                         {
@@ -50,7 +50,7 @@ namespace YouTubeArchiverServer
                 return command;
             }
             
-            public static void Run(string output, string appBase, string configPath)
+            public static async Task Run(string output, string appBase, string configPath)
             {
                 if (string.IsNullOrEmpty(output))
                 {
@@ -63,7 +63,7 @@ namespace YouTubeArchiverServer
                 
                 using (var host = BuildWeb(configPath).BuildVirtualHost(appBase))
                 {
-                    new HostExporter().Export(host, output);
+                    await new HostExporter().Export(host, output);
                 }
                 
                 Log.Information("Done!");

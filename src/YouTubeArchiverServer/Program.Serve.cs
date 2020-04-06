@@ -18,22 +18,22 @@ namespace YouTubeArchiverServer
             {
                 var command = new Command("serve")
                 {
-                    new Option("port")
+                    new Option("--port")
                     {
                         Argument = new Argument<int>(() => 8000)
                         {
                             Arity = ArgumentArity.ExactlyOne
                         }
                     },
-                    new Option("app-base")
+                    new Option("--app-base")
                     {
                         Argument = new Argument<string>
                         {
-                            Name = "appBase",
+                            Name = "app-base",
                             Arity = ArgumentArity.ExactlyOne
                         }
                     },
-                    new Option(new []{"-c", "--config-path"})
+                    new Option("--config-path")
                     {
                         Argument = new Argument<string>
                         {

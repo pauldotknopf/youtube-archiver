@@ -83,7 +83,8 @@ namespace YouTubeArchiverServer
                     indexes.Cast<IIndexWorkspace>().ToList()), new Config
                 {
                     SiteTitle = config.Title,
-                    FooterHtml = config.FooterHtml
+                    FooterHtml = config.FooterHtml,
+                    GoogleTracking = config.GoogleTracking
                 });
         }
     }
