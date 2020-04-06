@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Common;
 using Common.Models;
 using Newtonsoft.Json;
 using Serilog;
@@ -48,20 +49,46 @@ namespace YouTubeArchiver.Index
             
             Log.Logger.Information("Discovering captions...");
             var captionEntries = workspace.GetCaptions();
-
+            
             if (captionEntries.Count == 0)
             {
                 Log.Logger.Information("No captions are present.");
                 return;
             }
-            
-            Log.Logger.Information("Discovering current topics...");
-
+          
             string topic;
             List<string> aliases;
             ParseTopic(queryFull, out topic, out aliases);
+
+            string hash;
+            {
+                var captionKeys = captionEntries.Select(x => x.Key).ToList();
+                captionKeys.Sort();
+                var hashInput = string.Join("", captionKeys);
+                if (aliases == null)
+                {
+                    hashInput += topic;
+                }
+                else
+                {
+                    hashInput += string.Join("", aliases);
+                }
+
+                hash = hashInput.CalculateMD5Hash();
+            }
+
+            {
+                // Determine if this hash already exists.
+                var existingTopicSearch = workspace.FindTopic(topic);
+                if (existingTopicSearch != null && existingTopicSearch.Hash == hash)
+                {
+                    Log.Warning("This topic was already indexed, no changes were detected, skipping...");
+                    return;
+                }
+            }
             
             var result = new TopicSearch();
+            result.Hash = hash;
             result.Topic = topic;
             result.Aliases = aliases;
             result.Results = new List<TopicSearch.VideoResult>();

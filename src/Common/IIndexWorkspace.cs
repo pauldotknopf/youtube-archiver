@@ -12,5 +12,7 @@ namespace Common
         Dictionary<string, List<Caption>> GetCaptions();
 
         Dictionary<string, TopicSearch> GetTopics();
+
+        TopicSearch FindTopic(string topic);
     }
 }

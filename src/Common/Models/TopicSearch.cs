@@ -14,6 +14,8 @@ namespace Common.Models
         
         public List<string> Aliases { get; set; }
         
+        public string Hash { get; set; }
+        
         public List<VideoResult> Results { get; set; }
         
         public class VideoResult
