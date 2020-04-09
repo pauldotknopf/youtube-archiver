@@ -77,7 +77,7 @@ namespace Common
                 return result;
             }
 
-            foreach (var file in Directory.GetFiles(captionsDirectory, "*.json"))
+            foreach (var file in Directory.GetFiles(captionsDirectory, "*.json").OrderBy(x => x))
             {
                 result.Add(Path.GetFileNameWithoutExtension(file), JsonConvert.DeserializeObject<List<Caption>>(File.ReadAllText(file)));
             }

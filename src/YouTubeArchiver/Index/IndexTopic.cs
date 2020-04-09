@@ -56,48 +56,65 @@ namespace YouTubeArchiver.Index
                 return;
             }
 
-            string captionHash;
-            {
-                var captionKeys = captionEntries.Select(x => x.Key).ToList();
-                captionKeys.Sort();
-                captionHash = string.Join("", captionKeys);
-            }
-
             foreach (var q in query)
             {
                 ParseTopic(q, out var topicName, out var topicAliases);
 
-                var topicHash = (captionHash + topicName +
-                                 (topicAliases != null ? string.Join("", topicAliases) : "")).CalculateMD5Hash()
-                    .Substring(0, 5);
-
-                {
-                    // Check to see if we already indexed this topic.
-                    var existingTopic = workspace.FindTopic(topicName);
-                    if (existingTopic != null && existingTopic.Hash == topicHash)
-                    {
-                        Log.Warning("Already indexed {topic}, skipping...", topicName);
-                        continue;
-                    }
-                }
-                
                 Log.Information("Indexing {topic}...", topicName);
 
-                var result = new TopicSearch();
-                result.Hash = topicHash;
-                result.Topic = topicName;
-                result.Aliases = topicAliases;
-                result.Results = new List<TopicSearch.VideoResult>();
+                var topic = workspace.FindTopic(topicName);
+
+                if (topic == null)
+                {
+                    topic = new TopicSearch();
+                    topic.Topic = topicName;
+                    topic.Aliases = topicAliases;
+                    topic.Results = new List<TopicSearch.VideoResult>();
+                }
+                else
+                {
+                    // If this topic has updated aliases, we need to reindex everything.
+                    string Hash(string t, List<string> a)
+                    {
+                        var hash = (t ?? "").CalculateMD5Hash();
+                        if (a != null)
+                        {
+                            hash += string.Join("", a.Select(x => x.CalculateMD5Hash()));
+                        }
+                        return hash;
+                    }
+
+                    if (Hash(topic.Topic, topic.Aliases) != Hash(topicName, topicAliases))
+                    {
+                        topic.Indexed = null;
+                    }
+                }
+
+                var indexedVideos = new List<string>();
+                if (!string.IsNullOrEmpty(topic.Indexed))
+                {
+                    indexedVideos = topic.Indexed.Split(",").ToList();
+                }
+                else
+                {
+                    indexedVideos = new List<string>();
+                }
 
                 foreach (var captions in captionEntries)
                 {
+                    if (indexedVideos.Contains(captions.Key))
+                    {
+                        continue;
+                    }
+                    indexedVideos.Add(captions.Key);
+                    
                     var segments = SearchEngine.Search(captions.Value, topicAliases ?? new List<string> {topicName});
                     if (segments.Count == 0)
                     {
                         continue;
                     }
 
-                    result.Results.Add(new TopicSearch.VideoResult
+                    topic.Results.Add(new TopicSearch.VideoResult
                     {
                         Id = captions.Key,
                         Segments = segments.Select(x => new TopicSearch.VideoResult.Segment
@@ -107,8 +124,9 @@ namespace YouTubeArchiver.Index
                         }).ToList()
                     });
                 }
-                
-                workspace.SaveTopic(result);
+
+                topic.Indexed = string.Join(",", indexedVideos);
+                workspace.SaveTopic(topic);
             }
 
             Log.Information("Done!");

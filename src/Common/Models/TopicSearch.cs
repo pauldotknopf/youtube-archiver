@@ -10,6 +10,9 @@ namespace Common.Models
             Results = new List<VideoResult>();
         }
         
+        [JsonProperty("indexed")]
+        public string Indexed { get; set; }
+        
         [JsonProperty("topic")]
         public string Topic { get; set; }
         
