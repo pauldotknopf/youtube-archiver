@@ -34,6 +34,7 @@ namespace YouTubeArchiverServer
                     channel.Videos.Add(new VideoModel
                     {
                         Video = video,
+                        VideoPath = workspace.GetVideoPath(video.Id),
                         Channel = channel
                     });
                 }

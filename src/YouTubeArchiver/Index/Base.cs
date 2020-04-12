@@ -17,7 +17,8 @@ namespace YouTubeArchiver.Index
                 UpdateCaptions.Create(),
                 DownloadVideos.Create(),
                 SearchCaptions.Create(),
-                IndexTopic.Create()
+                IndexTopic.Create(),
+                UploadVideos.Create()
             };
         }
     }

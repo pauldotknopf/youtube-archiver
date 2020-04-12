@@ -9,6 +9,10 @@ namespace Common
 
         List<Video> GetVideos();
 
+        VideoPath GetVideoPath(string id);
+
+        void UpdateVideoPath(string id, VideoPathExternal path);
+
         Dictionary<string, List<Caption>> GetCaptions();
 
         Dictionary<string, TopicSearch> GetTopics();

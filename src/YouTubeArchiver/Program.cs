@@ -18,7 +18,7 @@ namespace YouTubeArchiver
             {
                 Index.Base.Create(),
                 Auth.Create(),
-                DownloadVideo.Create()
+                DownloadVideo.Create(),  
             };
 
             rootCommand.Name = "youtube-archiver";
