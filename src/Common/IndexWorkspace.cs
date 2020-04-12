@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using Common.Models;
 using Newtonsoft.Json;
 using Serilog;
@@ -67,6 +68,56 @@ namespace Common
             return result;
         }
 
+        public VideoPath GetVideoPath(string id)
+        {
+            var mirrorDirectory = Path.Combine(_directory, "mirror");
+            if (!Directory.Exists(mirrorDirectory))
+            {
+                return VideoPath.None;
+            }
+
+            var localFile = Path.Combine(mirrorDirectory, $"{id}.mp4");
+
+            if (File.Exists(localFile))
+            {
+                return VideoPath.Local(localFile);
+            }
+
+            var mirrorFile = Path.Combine(mirrorDirectory, $"{id}.txt");
+
+            if (File.Exists(mirrorFile))
+            {
+                return VideoPath.External(File.ReadAllText(mirrorFile));
+            }
+            
+            return VideoPath.None;
+        }
+
+        public void UpdateVideoPath(string id, VideoPathExternal path)
+        {
+            var mirrorDirectory = Path.Combine(_directory, "mirror");
+            if (!Directory.Exists(mirrorDirectory))
+            {
+                Directory.CreateDirectory(mirrorDirectory);
+            }
+            
+            var localFile = Path.Combine(mirrorDirectory, $"{id}.mp4");
+
+            if (File.Exists(localFile))
+            {
+                File.Delete(localFile);
+            }
+
+            var mirrorFile = Path.Combine(mirrorDirectory, $"{id}.txt");
+
+            if (File.Exists(mirrorFile))
+            {
+                File.Delete(mirrorFile);
+            }
+            
+            File.WriteAllText(mirrorFile, path.Url);
+        }
+
         public Dictionary<string, List<Caption>> GetCaptions()
         {
             var result = new Dictionary<string, List<Caption>>();
@@ -85,15 +136,29 @@ namespace Common
             return result;
         }
         
-        public void DownloadVideo(Video video, Action<string> action)
+        public void DownloadVideo(string id, string url)
         {
-            var captionDirectory = Path.Combine(_directory, "videos");
-            if (!Directory.Exists(captionDirectory))
+            if (GetVideoPath(id).Type != VideoPathType.None)
             {
-                Directory.CreateDirectory(captionDirectory);
+                throw new Exception("The video is already downloaded.");
             }
 
-            action(Path.Combine(captionDirectory, $"{video.Id}.mp4"));
+            var mirrorDirectory = Path.Combine(_directory, "mirror");
+            if (!Directory.Exists(mirrorDirectory))
+            {
+                Directory.CreateDirectory(mirrorDirectory);
+            }
+            using (var client = new WebClient())
+            {
+                var tmpFile = Path.Combine(mirrorDirectory, $"{Guid.NewGuid().ToString().Replace("-", "").Substring(0, 5)}-tmp.mp4");
+                if (File.Exists(tmpFile))
+                {
+                    File.Delete(tmpFile);
+                }
+                
+                client.DownloadFile(url, tmpFile);
+                File.Move(tmpFile, Path.Combine(mirrorDirectory, $"{id}.mp4"));
+            }
         }
 
         public Dictionary<string, TopicSearch> GetTopics()

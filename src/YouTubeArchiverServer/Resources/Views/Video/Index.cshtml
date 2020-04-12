@@ -1,4 +1,15 @@
+@using Common
 @model VideoModel
+@{
+    string externalUrl = null;
+    var isYouTube = true;
+    if (Model.VideoPath is VideoPathExternal videoPathExternal)
+    {
+        externalUrl = videoPathExternal.Url;
+        isYouTube = false;
+    }
+}
+
 
 @section navbarSecondary
 {
@@ -15,7 +26,14 @@
             uploaded on @(Model.Video.UploadedOn.HasValue ? @Model.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
         </p>
         <div class="embed-responsive embed-responsive-16by9">
-            <div id="player"></div>
+            @if (isYouTube)
+            {
+                <div id="player"></div>
+            }
+            else
+            {
+                <video id="player" src="@externalUrl" controls autoplay></video>
+            }
         </div>
     </div>
     @if (Model.MentionedTopics.Count > 0)
@@ -41,23 +59,34 @@
 </div>
 
 @section scripts {
-    <script type="text/javascript">
-        var player = YouTubeArchiverServer.youTubePlayer("player");
-        var seekToInitialDone = false;
-        player.on("stateChange", function(e) {
-            if(e.data === 1 && !seekToInitialDone) {
-                seekToInitialDone = true;
-                var seekTo = parseInt(new URLSearchParams(window.location.search).get("t"));
-                if(seekTo) {
-                    player.seekTo(seekTo, true);
+    @if (isYouTube)
+    {
+        <script type="text/javascript">
+            var player = YouTubeArchiverServer.youTubePlayer("player");
+            var seekToInitialDone = false;
+            player.on("stateChange", function(e) {
+                if(e.data === 1 && !seekToInitialDone) {
+                    seekToInitialDone = true;
+                    var seekTo = parseInt(new URLSearchParams(window.location.search).get("t"));
+                    if(seekTo) {
+                        player.seekTo(seekTo, true);
+                    }
                 }
+            });
+            player.loadVideoById("@Model.Video.Id");
+            player.playVideo();
+            
+            window.seekTo = function(location) {
+                player.seekTo(location, true);
             }
-        });
-        player.loadVideoById("@Model.Video.Id");
-        player.playVideo();
-        
-        window.seekTo = function(location) {
-            player.seekTo(location, true);
-        }
-    </script>
+        </script>
+    }
+    else
+    {
+        <script type="text/javascript">
+            window.seekTo = function(location) {
+                player.currentTime = location;
+            }
+        </script>
+    }
 }
