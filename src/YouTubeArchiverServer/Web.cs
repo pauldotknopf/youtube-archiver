@@ -77,7 +77,7 @@ namespace YouTubeArchiverServer
 
             foreach (var channel in channels)
             {
-                builder.RegisterMvc($"/topics/{channel.Channel.Id}", new
+                builder.RegisterMvc($"/channel/{channel.Channel.Id}/topics", new
                 {
                     controller = "Topic",
                     action = "ListByChannel",
@@ -104,7 +104,7 @@ namespace YouTubeArchiverServer
                     if (topic.Videos.Count > 0)
                 
                     {
-                        builder.RegisterMvc($"/topic/{topic.Id}/channel/{channel.Channel.Id}", new
+                        builder.RegisterMvc($"/channel/{channel.Channel.Id}/topic/{topic.Id}", new
                         {
                             controller = "Topic",
                             action = "TopicVideosForChannel",

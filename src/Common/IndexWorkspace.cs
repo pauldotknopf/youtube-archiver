@@ -155,8 +155,20 @@ namespace Common
                 {
                     File.Delete(tmpFile);
                 }
-                
-                client.DownloadFile(url, tmpFile);
+
+                try
+                {
+                    client.DownloadFile(url, tmpFile);
+                }
+                catch (Exception)
+                {
+                    if (File.Exists(tmpFile))
+                    {
+                        File.Delete(tmpFile);
+                    }
+                    throw;
+                }
+
                 File.Move(tmpFile, Path.Combine(mirrorDirectory, $"{id}.mp4"));
             }
         }
