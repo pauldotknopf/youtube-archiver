@@ -155,7 +155,6 @@ namespace Common
                 {
                     File.Delete(tmpFile);
                 }
-                Log.Information("Url: {url}", url);
                 
                 client.DownloadFile(url, tmpFile);
                 File.Move(tmpFile, Path.Combine(mirrorDirectory, $"{id}.mp4"));
