@@ -2,6 +2,7 @@ using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using System.Net;
 using Common;
 using Serilog;
 
@@ -38,7 +39,22 @@ namespace YouTubeArchiver.Index
 
                 try
                 {
-                    workspace.DownloadVideo(video.Id, $"https://invidio.us/latest_version?id={video.Id}&itag=18");
+                    try
+                    {
+                        workspace.DownloadVideo(video.Id, $"https://invidio.us/latest_version?id={video.Id}&itag=18");
+                    }
+                    catch (WebException webException)
+                    {
+                        if(webException.Status == WebExceptionStatus.ProtocolError)
+                        {
+                            if (((HttpWebResponse)webException.Response).StatusCode == HttpStatusCode.InternalServerError)
+                            {
+                                // invidio.us throws 500 when a video is requested for the first time.
+                                // let's try one more request.
+                                workspace.DownloadVideo(video.Id, $"https://invidio.us/latest_version?id={video.Id}&itag=18");
+                            }
+                        }
+                    }
                     
                     Log.Information("Downloaded!");
                 }

@@ -87,6 +87,12 @@
             window.seekTo = function(location) {
                 player.currentTime = location;
             }
+            document.getElementById('player').addEventListener('loadedmetadata', function() {
+                var seekTo = parseInt(new URLSearchParams(window.location.search).get("t"));
+                if(seekTo) {
+                    player.currentTime = seekTo;
+                }
+            }, false);
         </script>
     }
 }
