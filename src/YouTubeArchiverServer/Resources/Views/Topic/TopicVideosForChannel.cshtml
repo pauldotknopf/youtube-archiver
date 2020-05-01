@@ -16,7 +16,10 @@
         {
             <div class="video">
                 <h2 class="video-title">
-                    <a href="@Url.Content($"~/video/{video.Video.Video.Id}")">@video.Video.Video.Title</a>
+                    @if (video.Video.Video.Deleted)
+                    {
+                        <span class="badge badge-danger">deleted</span>
+                    }<a href="@Url.Content($"~/video/{video.Video.Video.Id}")">@video.Video.Video.Title</a>
                 </h2>
                 <p class="video-submitted">
                     uploaded on @(video.Video.Video.UploadedOn.HasValue ? video.Video.Video.UploadedOn.Value.ToString("MMM dd, yyyy") : "(unknown)")
