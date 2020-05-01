@@ -97,6 +97,26 @@ namespace YouTubeArchiver.Index
                 await File.WriteAllTextAsync(videoFile, JsonConvert.SerializeObject(video, Formatting.Indented));
             }
             
+            // Find deleted videos
+            existingVideos = IndexWorkspace.Create(indexDirectory).GetVideos();
+            foreach (var existingVideo in existingVideos)
+            {
+                if(existingVideo.Deleted) continue;
+                
+                if (!videos.Contains(existingVideo))
+                {
+                    // This video is deleted
+                    Log.Warning("Deleted: {title}", existingVideo.Title);
+                    var videoFile = Path.Combine(videosDirectory, $"{existingVideo.Id}.json");
+                    if (File.Exists(videoFile))
+                    {
+                        File.Delete(videoFile);
+                    }
+                    existingVideo.Deleted = true;
+                    await File.WriteAllTextAsync(videoFile, JsonConvert.SerializeObject(existingVideo, Formatting.Indented));
+                }
+            }
+            
             // TODO: Check if videos are deleted...
             
             Log.Information("Done!");

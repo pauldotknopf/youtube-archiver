@@ -18,7 +18,11 @@
 
 <div class="container">
     <div class="video">
-        <h1 class="video-title">@Model.Video.Title</h1>
+        <h1 class="video-title">@if (Model.Video.Deleted)
+                                {
+                                    <span class="badge badge-danger">deleted</span>
+                                }@Model.Video.Title</h1>
+        
         <p class="video-from-channel">
             from <a href="@Url.Content($"~/channel/{Model.Channel.Channel.Id}")">@(Model.Channel.Channel.Title)</a>
         </p>

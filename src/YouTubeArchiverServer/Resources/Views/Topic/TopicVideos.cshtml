@@ -11,7 +11,10 @@
         {
             <div class="video">
                 <h2 class="video-title">
-                    <a href="@Url.Content($"~/video/{video.Video.Video.Id}")">@video.Video.Video.Title</a>
+                    @if (video.Video.Video.Deleted)
+                    {
+                        <span class="badge badge-danger">deleted</span>
+                    }<a href="@Url.Content($"~/video/{video.Video.Video.Id}")">@video.Video.Video.Title</a>
                 </h2>
                 <p class="video-from-channel">
                     from <a href="@Url.Content($"~/channel/{video.Video.Channel.Channel.Id}")">@(video.Video.Channel.Channel.Title)</a>
